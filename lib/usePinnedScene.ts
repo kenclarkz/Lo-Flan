@@ -30,7 +30,8 @@ export function usePinnedScene(
 
     const measure = () => {
       offsetRef.current = el.getBoundingClientRect().top + window.scrollY
-      lengthRef.current = Math.max(0.1, options.length ?? 1)
+      const mobile = window.innerWidth < 768 ? 0.7 : 1
+      lengthRef.current = Math.max(0.1, (options.length ?? 1) * mobile)
     }
     measure()
     window.addEventListener('resize', measure)

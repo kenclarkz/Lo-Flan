@@ -8,7 +8,7 @@ export default function BlenderScene() {
   const sectionRef = useRef<HTMLDivElement>(null)
   const statusRef = useRef<HTMLParagraphElement>(null)
   const barRef = useRef<HTMLDivElement>(null)
-  const { progressRef } = usePinnedScene(sectionRef, { length: 2.7 })
+  const { progressRef } = usePinnedScene(sectionRef, { length: 1.9 })
 
   useSceneText(sectionRef, progressRef)
 
@@ -33,7 +33,7 @@ export default function BlenderScene() {
   }, [progressRef])
 
   return (
-    <SceneShell ref={sectionRef} id="blend" chapter="The Blend" extra={1.7}>
+    <SceneShell ref={sectionRef} id="blend" chapter="The Blend" extra={0.9}>
       <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pt-12 pb-14 text-center pointer-events-none sm:pt-20">
         <div>
           <p data-reveal className="eyebrow">Chapter 03 — The Blend</p>

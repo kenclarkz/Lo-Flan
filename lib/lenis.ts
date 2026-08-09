@@ -9,11 +9,11 @@ export function initLenis() {
   if (instance) return instance
 
   instance = new Lenis({
-    duration: 1.2,
+    duration: 0.75,
     easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
     smoothWheel: true,
-    touchMultiplier: 1.35,
-    wheelMultiplier: 1,
+    touchMultiplier: 1.5,
+    wheelMultiplier: 1.2,
   })
 
   instance.on('scroll', ScrollTrigger.update)

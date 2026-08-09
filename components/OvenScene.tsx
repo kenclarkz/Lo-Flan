@@ -9,7 +9,7 @@ export default function OvenScene() {
   const statusRef = useRef<HTMLParagraphElement>(null)
   const heatRef = useRef<HTMLDivElement>(null)
   const flashRef = useRef<HTMLDivElement>(null)
-  const { progressRef } = usePinnedScene(sectionRef, { length: 2.7 })
+  const { progressRef } = usePinnedScene(sectionRef, { length: 1.9 })
 
   useSceneText(sectionRef, progressRef)
 
@@ -39,7 +39,7 @@ export default function OvenScene() {
   }, [progressRef])
 
   return (
-    <SceneShell ref={sectionRef} id="oven" chapter="The Bake" extra={1.7}>
+    <SceneShell ref={sectionRef} id="oven" chapter="The Bake" extra={0.9}>
       {/* Warm glow while baking */}
       <div
         ref={flashRef}

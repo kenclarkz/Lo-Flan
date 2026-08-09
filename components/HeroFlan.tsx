@@ -8,12 +8,12 @@ import { usePinnedScene, useSceneText } from '@/lib/usePinnedScene'
 
 export default function HeroFlan() {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const { progressRef } = usePinnedScene(sectionRef, { length: 2.4 })
+  const { progressRef } = usePinnedScene(sectionRef, { length: 1.7 })
 
   useSceneText(sectionRef, progressRef)
 
   return (
-    <SceneShell ref={sectionRef} id="flan" chapter="The Flan" extra={1.4}>
+    <SceneShell ref={sectionRef} id="flan" chapter="The Flan" extra={0.7}>
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
         <p data-reveal data-visible className="eyebrow">Maison de Flan</p>
 

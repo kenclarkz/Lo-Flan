@@ -95,6 +95,17 @@ body {
   mask-image: linear-gradient(to bottom, black 55%, transparent 100%);
 }
 
+/* Trailing scroll room after each sticky chapter. Scaled down on mobile so
+   the journey feels faster and less stretched on small screens. */
+.scene-scroll-room {
+  height: calc(var(--extra) * 100svh);
+}
+@media (max-width: 767px) {
+  .scene-scroll-room {
+    height: calc(var(--extra) * 70svh);
+  }
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

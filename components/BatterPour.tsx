@@ -6,12 +6,12 @@ import { usePinnedScene, useSceneText } from '@/lib/usePinnedScene'
 
 export default function BatterPour() {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const { progressRef } = usePinnedScene(sectionRef, { length: 2.2 })
+  const { progressRef } = usePinnedScene(sectionRef, { length: 1.6 })
 
   useSceneText(sectionRef, progressRef)
 
   return (
-    <SceneShell ref={sectionRef} id="pour" chapter="The Pour" extra={1.2}>
+    <SceneShell ref={sectionRef} id="pour" chapter="The Pour" extra={0.6}>
       <div className="absolute inset-0 flex flex-col items-center justify-between px-6 pt-12 pb-16 text-center pointer-events-none sm:pt-20">
         <div>
           <p data-reveal className="eyebrow">Chapter 04 — The Pour</p>

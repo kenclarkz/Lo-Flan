@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, type PropsWithChildren } from 'react'
+import { forwardRef, type CSSProperties, type PropsWithChildren } from 'react'
 import { cn } from '@/lib/utils'
 
 /**
@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils'
  *
  * `extra` adds trailing scroll room (as a viewport multiplier) so the scene's
  * animation has the same breathing room its original pin used to give it.
+ * The room is scaled down on small screens so the journey scrolls faster on
+ * mobile.
  */
 export const SceneShell = forwardRef<
   HTMLElement,
@@ -33,7 +35,11 @@ export const SceneShell = forwardRef<
       {children}
     </section>
     {typeof extra === 'number' && extra > 0 ? (
-      <div style={{ height: `${extra * 100}svh` }} aria-hidden />
+      <div
+        style={{ '--extra': extra } as CSSProperties}
+        className="scene-scroll-room"
+        aria-hidden
+      />
     ) : null}
   </>
 ))

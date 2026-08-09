@@ -8,12 +8,12 @@ import Flan3D from '@/components/Flan3D'
 
 export default function FinalProduct() {
   const sectionRef = useRef<HTMLDivElement>(null)
-  const { progressRef } = usePinnedScene(sectionRef, { length: 1.6 })
+  const { progressRef } = usePinnedScene(sectionRef, { length: 1.4 })
 
   useSceneText(sectionRef, progressRef)
 
   return (
-    <SceneShell ref={sectionRef} id="reveal" chapter="The Reveal" extra={1.6}>
+    <SceneShell ref={sectionRef} id="reveal" chapter="The Reveal" extra={0.7}>
       <div data-reveal className="absolute inset-0 pointer-events-none">
         <Flan3D className="h-full w-full pointer-events-none" />
       </div>
