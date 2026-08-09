@@ -64,8 +64,8 @@ const FRAGMENT = /* glsl */ `
   vec2 coverUv(vec2 uv, float imgAspect) {
     float screenAspect = uResolution.x / max(uResolution.y, 1.0);
     vec2 s = imgAspect > screenAspect
-      ? vec2(1.0, screenAspect / imgAspect)
-      : vec2(imgAspect / screenAspect, 1.0);
+      ? vec2(screenAspect / imgAspect, 1.0)
+      : vec2(1.0, imgAspect / screenAspect);
     return clamp((uv - 0.5) * s + 0.5, 0.001, 0.999);
   }
 
