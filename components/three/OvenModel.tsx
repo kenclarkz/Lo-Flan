@@ -4,6 +4,7 @@ import { useRef, type MutableRefObject, type RefObject } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { ModelOrFallback } from './ModelOrFallback'
+import { asset } from '@/lib/paths'
 import { lerp, easeInOutCubic } from './math'
 import { Sparkles } from '@react-three/drei'
 
@@ -85,7 +86,7 @@ export function OvenModel({
   })
 
   return (
-    <ModelOrFallback url="/assets/oven/oven.glb">
+    <ModelOrFallback url={asset('/assets/oven/oven.glb')}>
       <group {...props}>
         {/* Oven body */}
         <mesh position={[0, 0.85, 0]} receiveShadow>

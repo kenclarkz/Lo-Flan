@@ -4,6 +4,7 @@ import { useRef, type RefObject } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { ModelOrFallback } from './ModelOrFallback'
+import { asset } from '@/lib/paths'
 import { lerp } from './math'
 
 const CARAMEL = '#A65A1E'
@@ -122,7 +123,7 @@ export function FlanModel({
   ...props
 }: { dripRef?: RefObject<number> } & JSX.IntrinsicElements['group']) {
   return (
-    <ModelOrFallback url="/assets/flan/flan.glb">
+    <ModelOrFallback url={asset('/assets/flan/flan.glb')}>
       <group {...props}>
         <ProceduralFlan dripRef={dripRef} />
       </group>

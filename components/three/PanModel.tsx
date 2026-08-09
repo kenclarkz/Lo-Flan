@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { ModelOrFallback } from './ModelOrFallback'
 import { MeshDistortMaterial } from '@react-three/drei'
+import { asset } from '@/lib/paths'
 
 type PanProps = {
   /** Batter fill 0–1 (driven externally via ref) */
@@ -47,7 +48,7 @@ export function PanModel({ fill, distort, tilt }: PanProps) {
   const t = tilt?.current ?? 0
 
   return (
-    <ModelOrFallback url="/assets/blender/pan.glb">
+    <ModelOrFallback url={asset('/assets/blender/pan.glb')}>
       <group rotation={[t, 0, 0]}>
         {/* Pan body */}
         <mesh receiveShadow position={[0, 0.11, 0]}>

@@ -8,6 +8,7 @@ import { CategoryFilter } from '@/components/CategoryFilter'
 import { ProductCard } from '@/components/ProductCard'
 import { PriceDisplay } from '@/components/PriceDisplay'
 import { Reveal } from '@/components/Reveal'
+import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { Sparkles, Tag, Shield, Truck, Heart } from 'lucide-react'
 
@@ -49,7 +50,7 @@ export default function ProductsPage() {
       {/* Hero */}
       <section className="relative min-h-[70vh] flex items-center justify-center px-6 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-espresso via-espresso to-espresso-dark" />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'url("/assets/brand/hero-pattern.svg")' }} />
+        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: `url("${asset('/assets/brand/hero-pattern.svg')}")` }} />
         <div className="relative z-10 max-w-4xl text-center">
           <Reveal className="eyebrow">The Menu</Reveal>
           <Reveal delay={0.1} className="display mt-3 text-4xl sm:text-6xl lg:text-7xl font-light leading-[1.05] mb-6">
@@ -205,7 +206,7 @@ export default function ProductsPage() {
             and wholesale orders for cafés. Minimum 48 hours notice.
           </Reveal>
           <Reveal delay={0.3} className="flex flex-wrap items-center justify-center gap-3">
-            <a href="/contact" className="btn-primary">Start a Custom Order</a>
+            <Link href="/contact" className="btn-primary">Start a Custom Order</Link>
             <a href="mailto:hola@flandeoro.com" className="btn-ghost">Email Us</a>
           </Reveal>
         </div>

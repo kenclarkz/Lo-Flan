@@ -2,6 +2,8 @@
 
 > **The Journey of a Perfect Flan** — An immersive, scroll-driven brand experience combining cinematic 3D storytelling with premium ecommerce.
 
+> **🌐 Live site:** <https://kenclarkz.github.io/Lo-Flan/>
+
 ![Lo's Flan](public/assets/brand/logo.png)
 
 ---
@@ -12,6 +14,7 @@
 - **6 scroll-driven chapters** telling the flan journey: Hero → Ingredients → Blending → Pouring → Baking → Reveal
 - **Photo-driven** — drop a photo per chapter into `public/assets/journey/` and it replaces the placeholder automatically (no code changes)
 - **Fire burn transitions** — a full-screen WebGL layer shows the current photo and, when you scroll to the next chapter, consumes it with a flame-edged fire effect (char ahead of the flame, rising embers, warm flash) revealing the next photo
+- **3D product reveal** — the final chapter spins your Blender flan model (`/assets/flan/flan.glb`) over the reveal photo
 - **Elegant built-in placeholders** with the chapter numeral until real photos are added
 - **Smooth scrolling** via Lenis
 - Scroll-linked text reveals, status/progress overlays, and a final CTA — all driven by scroll position
@@ -52,12 +55,12 @@
 # Install dependencies
 npm install
 
-# Development server
-npm run dev        # → http://localhost:3000
+# Development server (serves under /Lo-Flan to match GitHub Pages paths)
+npm run dev        # → http://localhost:3000/Lo-Flan
 
-# Production build
+# Static export build (see 📦 Deployment)
 npm run build
-npm run start
+npx serve out      # preview the exported site (serves /Lo-Flan/...)
 
 # Lint & typecheck
 npm run lint
@@ -147,7 +150,7 @@ placeholder instantly — no code changes. Supported formats: `png`, `jpg`,
 | 03 Blend | `blend` | Batter/vortex in the blender |
 | 04 Pour | `pour` | Batter pouring into the mould |
 | 05 Bake | `oven` | Flan in the oven / water bath |
-| 06 Reveal | `reveal` | The finished flan, plated |
+| 06 Reveal | — (3D) | Replaced by the full-screen 3D flan — no photo needed |
 
 Example: drop `public/assets/journey/blend.png` and chapter 03 shows it
 full-screen behind the chapter text.
@@ -200,7 +203,24 @@ sage:       #BFD8C6
 
 ## 📦 Deployment
 
-### Vercel (Recommended)
+### GitHub Pages
+The site is deployed to <https://kenclarkz.github.io/Lo-Flan/> from `main` via
+`.github/workflows/pages.yml` (a static export in `out/`).
+
+```bash
+# Build the static export with the GitHub Pages base path
+NEXT_PUBLIC_BASE_PATH=/Lo-Flan npm run build
+# Output in /out
+```
+
+To enable the deployment: **Settings → Pages → Source: GitHub Actions**, then
+push to `main`. Every push rebuilds and redeploys automatically.
+
+> Local dev serves under `/Lo-Flan/` too (e.g. `http://localhost:3000/Lo-Flan/`)
+> so asset paths match production. `lib/paths.ts` supplies the base-path-prefixed
+> `asset()` helper used for every raw asset URL.
+
+### Vercel (Optional)
 ```bash
 vercel --prod
 ```
@@ -243,9 +263,8 @@ CMD ["node", "server.js"]
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Start dev server with Turbopack |
-| `npm run build` | Production build |
-| `npm run start` | Run production server |
+| `npm run dev` | Start dev server (serves under `/Lo-Flan`) |
+| `npm run build` | Static export build (outputs to `out/`) |
 | `npm run lint` | ESLint (Next.js config) |
 | `npm run typecheck` | TypeScript compile check |
 

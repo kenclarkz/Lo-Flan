@@ -12,6 +12,8 @@
  *   - prepDays              -> lead time for catering orders
  */
 
+import { asset } from '@/lib/paths'
+
 export type CategoryId =
   | 'all'
   | 'classic'
@@ -87,7 +89,7 @@ export const products: Product[] = [
     category: 'classic',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
     sizePrice: { 'Small (6")': 28, 'Medium (9")': 35, 'Large (11")': 48 },
-    image: '/assets/products/classic-flan.svg',
+    image: asset('/assets/products/classic-flan.svg'),
     ingredients: ['Eggs', 'Whole Milk', 'Vanilla', 'Golden Sugar'],
     featured: true,
     badge: 'Best Seller',
@@ -103,7 +105,7 @@ export const products: Product[] = [
     price: 42,
     category: 'classic',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
-    image: '/assets/products/vanilla-flan.svg',
+    image: asset('/assets/products/vanilla-flan.svg'),
     ingredients: ['Eggs', 'Milk', 'Tahitian Vanilla', 'Cream', 'Sugar'],
     featured: true,
     rating: 5.0,
@@ -118,7 +120,7 @@ export const products: Product[] = [
     price: 44,
     category: 'specialty',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
-    image: '/assets/products/coffee-flan.svg',
+    image: asset('/assets/products/coffee-flan.svg'),
     ingredients: ['Eggs', 'Milk', 'Cold Brew', 'Salted Caramel', 'Sugar'],
     rating: 4.8,
     allergens: ['Egg', 'Milk'],
@@ -132,7 +134,7 @@ export const products: Product[] = [
     price: 48,
     category: 'specialty',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
-    image: '/assets/products/chocolate-flan.svg',
+    image: asset('/assets/products/chocolate-flan.svg'),
     ingredients: ['Eggs', 'Milk', '72% Chocolate', 'Cream', 'Caramel'],
     featured: true,
     badge: 'Indulgent',
@@ -148,7 +150,7 @@ export const products: Product[] = [
     price: 46,
     category: 'seasonal',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
-    image: '/assets/products/mango-flan.svg',
+    image: asset('/assets/products/mango-flan.svg'),
     ingredients: ['Eggs', 'Milk', 'Alphonso Mango', 'Passionfruit', 'Sugar'],
     seasonal: true,
     rating: 4.8,
@@ -163,7 +165,7 @@ export const products: Product[] = [
     price: 45,
     category: 'seasonal',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
-    image: '/assets/products/matcha-flan.svg',
+    image: asset('/assets/products/matcha-flan.svg'),
     ingredients: ['Eggs', 'Milk', 'Ceremonial Matcha', 'White Chocolate', 'Sugar'],
     seasonal: true,
     rating: 4.7,
@@ -178,7 +180,7 @@ export const products: Product[] = [
     price: 47,
     category: 'specialty',
     sizes: ['Small (6")', 'Medium (9")', 'Large (11")'],
-    image: '/assets/products/hazelnut-flan.svg',
+    image: asset('/assets/products/hazelnut-flan.svg'),
     ingredients: ['Eggs', 'Milk', 'Hazelnut', 'Gianduja', 'Caramel'],
     isNew: true,
     rating: 4.9,
@@ -194,7 +196,7 @@ export const products: Product[] = [
     category: 'party',
     sizes: ['Serves 16', 'Serves 24'],
     sizePrice: { 'Serves 16': 120, 'Serves 24': 168 },
-    image: '/assets/products/party-flan.svg',
+    image: asset('/assets/products/party-flan.svg'),
     ingredients: ['Eggs', 'Milk', 'Vanilla', 'Caramel', 'Cream'],
     featured: true,
     badge: 'Celebration',
@@ -211,7 +213,7 @@ export const products: Product[] = [
     category: 'gift',
     sizes: ['6 pieces', '12 pieces'],
     sizePrice: { '6 pieces': 65, '12 pieces': 115 },
-    image: '/assets/products/gift-box.svg',
+    image: asset('/assets/products/gift-box.svg'),
     ingredients: ['Eggs', 'Milk', 'Seasonal Flavours', 'Caramel'],
     rating: 4.8,
     allergens: ['Egg', 'Milk', 'Tree Nuts (varies)'],

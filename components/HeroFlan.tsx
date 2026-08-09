@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import Image from 'next/image'
+import { asset } from '@/lib/paths'
 import { SceneShell } from '@/components/SceneShell'
 import { usePinnedScene, useSceneText } from '@/lib/usePinnedScene'
 
@@ -24,7 +25,7 @@ export default function HeroFlan() {
             style={{ width: 'min(80vmin, 720px)', height: 'min(80vmin, 720px)' }}
           />
           <Image
-            src="/assets/brand/logo.png"
+            src={asset('/assets/brand/logo.png')}
             alt=""
             width={560}
             height={560}

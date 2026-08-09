@@ -5,11 +5,14 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useCart } from '@/lib/cart'
 import { usePathname } from 'next/navigation'
+import { asset, BASE_PATH } from '@/lib/paths'
 import { Menu, X, ShoppingBag, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Navigation() {
   const pathname = usePathname()
+  // usePathname includes the GitHub Pages basePath, but nav hrefs don't.
+  const current = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
   const { count, open, setOpen } = useCart()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -51,7 +54,7 @@ export function Navigation() {
             aria-label="Lo's Flan home"
           >
             <Image
-              src="/assets/brand/logo.png"
+              src={asset('/assets/brand/logo.png')}
               alt="Lo's Flan logo"
               width={40}
               height={40}
@@ -71,7 +74,7 @@ export function Navigation() {
                 href={link.href}
                 className={cn(
                   'text-[0.72rem] uppercase tracking-[0.18em] font-medium transition-colors duration-300',
-                  pathname === link.href
+                  current === link.href
                     ? 'text-gold'
                     : 'text-cream/70 hover:text-gold'
                 )}
@@ -119,7 +122,7 @@ export function Navigation() {
                   href={link.href}
                   className={cn(
                     'block text-lg uppercase tracking-[0.18em] font-medium transition-colors',
-                    pathname === link.href ? 'text-gold' : 'text-cream/70'
+                    current === link.href ? 'text-gold' : 'text-cream/70'
                   )}
                   onClick={() => setMobileOpen(false)}
                 >

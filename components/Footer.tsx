@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useState, type FormEvent } from 'react'
 import { Mail, MapPin, Phone, Clock, ArrowRight, Instagram } from 'lucide-react'
+import { asset } from '@/lib/paths'
 import { site } from '@/data/site'
 import { cn } from '@/lib/utils'
 
@@ -61,7 +62,7 @@ export function Footer() {
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center gap-3 mb-6" aria-label="Lo's Flan home">
               <Image
-                src="/assets/brand/logo.png"
+                src={asset('/assets/brand/logo.png')}
                 alt="Lo's Flan logo"
                 width={48}
                 height={48}

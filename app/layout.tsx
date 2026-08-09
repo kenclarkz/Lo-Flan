@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { asset, BASE_PATH } from '@/lib/paths'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { CartProvider } from '@/lib/cart'
@@ -13,13 +14,14 @@ export const metadata: Metadata = {
   description:
     'A luxury handmade flan bakery. Cinematic storytelling, handcrafted desserts and unforgettable moments — made fresh from simple ingredients.',
   keywords: ['flan', 'bakery', 'caramel flan', 'handmade dessert', 'luxury bakery'],
-  icons: { icon: '/assets/brand/logo.png' },
+  icons: { icon: asset('/assets/brand/logo.png') },
   openGraph: {
     title: "Lo's Flan — The Journey of a Perfect Flan",
     description:
       'A luxury handmade flan bakery. Cinematic storytelling, handcrafted desserts and unforgettable moments.',
     type: 'website',
-    images: ['/assets/brand/logo.png'],
+    url: 'https://kenclarkz.github.io/Lo-Flan/',
+    images: [`https://kenclarkz.github.io${BASE_PATH}/assets/brand/logo.png`],
   },
 }
 

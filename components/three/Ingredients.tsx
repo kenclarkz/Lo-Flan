@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react'
 import { ModelOrFallback } from './ModelOrFallback'
+import { asset } from '@/lib/paths'
 
 export type IngredientDef = {
   id: string
@@ -22,7 +23,7 @@ export const INGREDIENT_LAYOUT: IngredientDef[] = [
 
 export function Ingredient({ id }: { id: string }) {
   return (
-    <ModelOrFallback url={`/assets/ingredients/${id}.glb`}>
+    <ModelOrFallback url={asset(`/assets/ingredients/${id}.glb`)}>
       {renderPlaceholder(id)}
     </ModelOrFallback>
   )

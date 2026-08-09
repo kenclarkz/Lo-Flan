@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import Link from 'next/link'
 import { SceneShell } from '@/components/SceneShell'
 import { usePinnedScene, useSceneText } from '@/lib/usePinnedScene'
+import Flan3D from '@/components/Flan3D'
 
 export default function FinalProduct() {
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -13,7 +14,11 @@ export default function FinalProduct() {
 
   return (
     <SceneShell ref={sectionRef} id="reveal" chapter="The Reveal" extra={1.6}>
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center pointer-events-none">
+      <div data-reveal className="absolute inset-0 pointer-events-none">
+        <Flan3D className="h-full w-full pointer-events-none" />
+      </div>
+
+      <div className="absolute inset-0 flex flex-col items-center justify-end px-6 pb-14 text-center pointer-events-none sm:pb-20">
         <p data-reveal className="eyebrow">Chapter 06 — The Reveal</p>
         <h2 data-reveal data-reveal-delay="1" className="display mt-3 text-4xl sm:text-6xl font-light leading-[1.05]">
           Lo&apos;s flan,

@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import { Reveal } from '@/components/Reveal'
 import { ContactForm } from '@/components/ContactForm'
 import { Mail, MapPin, Phone, Clock, Send, CheckCircle2 } from 'lucide-react'
+import { asset } from '@/lib/paths'
 import { site } from '@/data/site'
 
 export const metadata: Metadata = {
@@ -109,7 +110,7 @@ export default function ContactPage() {
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-gold" /> Delivery & setup available</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-gold" /> Dietary accommodations</li>
               </ul>
-              <a href="/contact?subject=catering" className="mt-6 inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium text-sm uppercase tracking-[0.1em]">
+              <a href={asset('/contact?subject=catering')} className="mt-6 inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium text-sm uppercase tracking-[0.1em]">
                 Request a quote <Send className="w-4 h-4" strokeWidth={2} />
               </a>
             </Reveal>
@@ -130,7 +131,7 @@ export default function ContactPage() {
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-gold" /> Marketing support & POS</li>
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-gold" /> Exclusive seasonal access</li>
               </ul>
-              <a href="/contact?subject=wholesale" className="mt-6 inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium text-sm uppercase tracking-[0.1em]">
+              <a href={asset('/contact?subject=wholesale')} className="mt-6 inline-flex items-center gap-2 text-gold hover:text-gold-light font-medium text-sm uppercase tracking-[0.1em]">
                 Become a partner <Send className="w-4 h-4" strokeWidth={2} />
               </a>
             </Reveal>

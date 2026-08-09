@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
+import { asset } from '@/lib/paths'
 
 const Experience = dynamic(() => import('@/components/Experience'), {
   ssr: false,
@@ -9,7 +10,7 @@ const Experience = dynamic(() => import('@/components/Experience'), {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso" aria-hidden="true">
       <div className="text-center">
         <Image
-          src="/assets/brand/logo.png"
+          src={asset('/assets/brand/logo.png')}
           alt=""
           width={72}
           height={72}

@@ -5,10 +5,14 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { subscribeActiveChapter } from '@/lib/chapterState'
 import { startProcessTransition } from '@/lib/processState'
+import { asset } from '@/lib/paths'
 
 const CHAPTERS = ['hero', 'ingredients', 'blend', 'pour', 'oven', 'reveal']
 const EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp']
 const TRANSITION_S = 1.15
+
+// The reveal chapter is the full-screen 3D flan — no backdrop photo is used.
+const NO_PHOTO = new Set<number>([CHAPTERS.length - 1])
 
 const VERTEX = /* glsl */ `
   varying vec2 vUv;
@@ -163,7 +167,7 @@ function BurnScene() {
 
     const checkSlug = (i: number, j: number) => {
       if (cancelled || j >= EXTENSIONS.length) return
-      const url = `/assets/journey/${CHAPTERS[i]}.${EXTENSIONS[j]}`
+      const url = asset(`/assets/journey/${CHAPTERS[i]}.${EXTENSIONS[j]}`)
       fetch(url, { method: 'HEAD' })
         .then((res) => {
           if (cancelled) return
@@ -174,7 +178,9 @@ function BurnScene() {
           if (!cancelled) checkSlug(i, j + 1)
         })
     }
-    CHAPTERS.forEach((_, i) => checkSlug(i, 0))
+    CHAPTERS.forEach((_, i) => {
+      if (!NO_PHOTO.has(i)) checkSlug(i, 0)
+    })
 
     return () => {
       cancelled = true
