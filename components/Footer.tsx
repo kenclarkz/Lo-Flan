@@ -68,7 +68,6 @@ export function Footer() {
                 height={48}
                 className="rounded-full object-cover"
               />
-              <span className="font-serif text-2xl font-light tracking-tight">Lo&apos;s Flan</span>
             </Link>
             <p className="text-cream/60 text-sm leading-relaxed max-w-xs">
               Handcrafted flans made from six honest ingredients. Born in Santa Barbara, shared with the world.

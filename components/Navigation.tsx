@@ -61,9 +61,6 @@ export function Navigation() {
               className="rounded-full object-cover"
               priority
             />
-            <span className="hidden sm:block font-serif text-xl font-light tracking-tight">
-              Lo&apos;s Flan
-            </span>
           </Link>
 
           {/* Desktop nav */}
