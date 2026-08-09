@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" fill="none" role="img" aria-label="La Gran Fiesta Party Flan">
+  <defs>
+    <radialGradient id="bg8" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#2B1B10"/>
+      <stop offset="60%" stop-color="#241509"/>
+      <stop offset="100%" stop-color="#120C08"/>
+    </radialGradient>
+    <radialGradient id="plate8" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F7F0E3"/>
+      <stop offset="80%" stop-color="#EFE4D0"/>
+      <stop offset="100%" stop-color="#DCC9A8"/>
+    </radialGradient>
+    <linearGradient id="custard8" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7E3B4"/>
+      <stop offset="100%" stop-color="#EEC98A"/>
+    </linearGradient>
+    <linearGradient id="caramel8" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D9A36A"/>
+      <stop offset="100%" stop-color="#A96A2F"/>
+    </linearGradient>
+    <filter id="shadow8" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="32" stdDeviation="28" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="glow8"><feGaussianBlur stdDeviation="40"/></filter>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg8)"/>
+  <ellipse cx="450" cy="180" rx="380" ry="220" fill="#D9A36A" opacity="0.1" filter="url(#glow8)"/>
+  <ellipse cx="450" cy="960" rx="420" ry="90" fill="#000" opacity="0.4"/>
+  <ellipse cx="450" cy="920" rx="380" ry="75" fill="url(#plate8)"/>
+  <ellipse cx="450" cy="926" rx="320" ry="60" fill="#FBF7EE"/>
+  <ellipse cx="450" cy="890" rx="200" ry="26" fill="#000" opacity="0.35" filter="url(#glow8)"/>
+  <!-- Grand flan - larger -->
+  <path d="M250 870 v-320 q0 -200 200 -200 q200 0 200 200 v320 z" fill="url(#custard8)" filter="url(#shadow8)"/>
+  <ellipse cx="450" cy="430" rx="180" ry="45" fill="url(#caramel8)"/>
+  <g stroke="#A96A2F" stroke-width="4" fill="none" opacity="0.9">
+    <path d="M300 430 q-25 90 5 180"/>
+    <path d="M380 420 q-15 110 15 220"/>
+    <path d="M520 425 q10 105 -5 210"/>
+    <path d="M600 430 q20 95 -8 185"/>
+  </g>
+  <ellipse cx="450" cy="430" rx="130" ry="32" fill="#C97B2C"/>
+  <!-- Caramel shards on top -->
+  <g fill="#A65A1E" opacity="0.95">
+    <path d="M450 320 l-30 -60 l60 0 z" transform="rotate(-15 450 320)"/>
+    <path d="M480 340 l25 -55 l50 0 z" transform="rotate(10 480 340)"/>
+    <path d="M400 330 l-25 -50 l50 0 z" transform="rotate(-25 400 330)"/>
+    <path d="M500 310 l20 -45 l40 0 z" transform="rotate(20 500 310)"/>
+  </g>
+  <!-- Gold dust -->
+  <g fill="#E3C88C" opacity="0.7">
+    <circle cx="380" cy="500" r="3"/>
+    <circle cx="520" cy="480" r="2"/>
+    <circle cx="400" cy="560" r="2"/>
+    <circle cx="500" cy="540" r="3"/>
+    <circle cx="450" cy="520" r="2.5"/>
+  </g>
+</svg>

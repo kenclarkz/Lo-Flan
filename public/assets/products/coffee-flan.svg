@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" fill="none" role="img" aria-label="Cold Brew Caramel Flan">
+  <defs>
+    <radialGradient id="bg3" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#1F150C"/>
+      <stop offset="60%" stop-color="#181008"/>
+      <stop offset="100%" stop-color="#100A05"/>
+    </radialGradient>
+    <radialGradient id="plate3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E8E0D0"/>
+      <stop offset="80%" stop-color="#D8CDC4"/>
+      <stop offset="100%" stop-color="#C4B8A8"/>
+    </radialGradient>
+    <linearGradient id="custard3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D4B896"/>
+      <stop offset="100%" stop-color="#B89674"/>
+    </linearGradient>
+    <linearGradient id="caramel3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#A65A1E"/>
+      <stop offset="100%" stop-color="#7A3E12"/>
+    </linearGradient>
+    <filter id="shadow3" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="glow3"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg3)"/>
+  <ellipse cx="450" cy="180" rx="350" ry="200" fill="#C9A96A" opacity="0.06" filter="url(#glow3)"/>
+  <ellipse cx="450" cy="920" rx="380" ry="80" fill="#000" opacity="0.4"/>
+  <ellipse cx="450" cy="880" rx="340" ry="68" fill="url(#plate3)"/>
+  <ellipse cx="450" cy="886" rx="280" ry="52" fill="#E8E0D0"/>
+  <ellipse cx="450" cy="852" rx="170" ry="22" fill="#000" opacity="0.35" filter="url(#glow3)"/>
+  <path d="M280 830 v-280 q0 -180 170 -180 q170 0 170 180 v280 z" fill="url(#custard3)" filter="url(#shadow3)"/>
+  <ellipse cx="450" cy="450" rx="140" ry="38" fill="url(#caramel3)"/>
+  <g stroke="#7A3E12" stroke-width="3" fill="none" opacity="0.9">
+    <path d="M340 450 q-18 70 4 140"/>
+    <path d="M410 440 q-12 90 8 180"/>
+    <path d="M500 445 q10 85 -2 160"/>
+    <path d="M570 450 q16 75 -6 145"/>
+  </g>
+  <ellipse cx="450" cy="450" rx="100" ry="26" fill="#8A451D"/>
+  <!-- Coffee beans on plate -->
+  <g fill="#3E2A1E" transform="translate(450, 890)">
+    <ellipse cx="-70" cy="10" rx="12" ry="8"/>
+    <ellipse cx="0" cy="-5" rx="12" ry="8" transform="rotate(15)"/>
+    <ellipse cx="65" cy="5" rx="12" ry="8" transform="rotate(-10)"/>
+    <ellipse cx="-30" cy="30" rx="10" ry="7" transform="rotate(25)"/>
+    <ellipse cx="35" cy="25" rx="10" ry="7" transform="rotate(-20)"/>
+  </g>
+  <g fill="#5A3A24">
+    <path d="M380 920 q-2 0 -2 -4 q0 -4 2 -4 q4 0 4 4 q0 4 -2 4"/>
+    <path d="M520 915 q-2 0 -2 -4 q0 -4 2 -4 q4 0 4 4 q0 4 -2 4"/>
+    <path d="M360 970 q-2 0 -2 -4 q0 -4 2 -4 q4 0 4 4 q0 4 -2 4"/>
+    <path d="M540 965 q-2 0 -2 -4 q0 -4 2 -4 q4 0 4 4 q0 4 -2 4"/>
+  </g>
+</svg>

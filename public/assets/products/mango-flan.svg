@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" fill="none" role="img" aria-label="Mango Passion Flan">
+  <defs>
+    <radialGradient id="bg5" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#2E1A0A"/>
+      <stop offset="60%" stop-color="#241408"/>
+      <stop offset="100%" stop-color="#140A04"/>
+    </radialGradient>
+    <radialGradient id="plate5" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F7F0E3"/>
+      <stop offset="80%" stop-color="#EFE4D0"/>
+      <stop offset="100%" stop-color="#DCC9A8"/>
+    </radialGradient>
+    <linearGradient id="custard5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFD58A"/>
+      <stop offset="100%" stop-color="#F5B85A"/>
+    </linearGradient>
+    <linearGradient id="caramel5" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E3C88C"/>
+      <stop offset="100%" stop-color="#C9A96A"/>
+    </linearGradient>
+    <filter id="shadow5" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+    <filter id="glow5"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg5)"/>
+  <ellipse cx="450" cy="180" rx="350" ry="200" fill="#F5B85A" opacity="0.08" filter="url(#glow5)"/>
+  <ellipse cx="450" cy="920" rx="380" ry="80" fill="#000" opacity="0.35"/>
+  <ellipse cx="450" cy="880" rx="340" ry="68" fill="url(#plate5)"/>
+  <ellipse cx="450" cy="886" rx="280" ry="52" fill="#FBF7EE"/>
+  <ellipse cx="450" cy="852" rx="170" ry="22" fill="#000" opacity="0.3" filter="url(#glow5)"/>
+  <path d="M280 830 v-280 q0 -180 170 -180 q170 0 170 180 v280 z" fill="url(#custard5)" filter="url(#shadow5)"/>
+  <ellipse cx="450" cy="450" rx="140" ry="38" fill="url(#caramel5)"/>
+  <g stroke="#C9A96A" stroke-width="3" fill="none" opacity="0.9">
+    <path d="M340 450 q-18 70 4 140"/>
+    <path d="M410 440 q-12 90 8 180"/>
+    <path d="M500 445 q10 85 -2 160"/>
+    <path d="M570 450 q16 75 -6 145"/>
+  </g>
+  <ellipse cx="450" cy="450" rx="100" ry="26" fill="#D9A36A"/>
+  <!-- Mango slice on plate -->
+  <g transform="translate(450, 890)">
+    <path d="M-90 10 q0 -30 50 -30 q50 0 50 30 q0 25 -30 30 q-20 0 -35 -15" fill="#FFB84D" opacity="0.95"/>
+    <path d="M-85 10 q0 -20 30 -20 q30 0 30 20 q0 15 -18 15 q-12 0 -20 -10" fill="#FFCC66" opacity="0.9"/>
+  </g>
+  <!-- Mint leaf -->
+  <g fill="#BFD8C6" transform="translate(450, 890)">
+    <path d="M100 -20 q10 -10 25 0 q15 10 10 25 q-5 15 -20 15 q-15 0 -15 -15"/>
+  </g>
+  <!-- Passionfruit drizzle -->
+  <g stroke="#E9C3B0" stroke-width="2" fill="none" opacity="0.7">
+    <path d="M380 500 q15 20 30 40 q10 15 25 10"/>
+    <path d="M500 490 q-10 25 -5 50 q5 15 20 20"/>
+  </g>
+</svg>

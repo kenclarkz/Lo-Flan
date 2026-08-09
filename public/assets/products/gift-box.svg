@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" fill="none" role="img" aria-label="Petit Four Gift Box">
+  <defs>
+    <radialGradient id="bg9" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#2B1B10"/>
+      <stop offset="60%" stop-color="#241509"/>
+      <stop offset="100%" stop-color="#120C08"/>
+    </radialGradient>
+    <linearGradient id="boxGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EFE4D0"/>
+      <stop offset="50%" stop-color="#DCC9A8"/>
+      <stop offset="100%" stop-color="#C8B088"/>
+    </linearGradient>
+    <linearGradient id="ribbonGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C9A96A"/>
+      <stop offset="100%" stop-color="#A96A2F"/>
+    </linearGradient>
+    <filter id="shadow9" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="32" stdDeviation="28" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="glow9"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg9)"/>
+  <ellipse cx="450" cy="180" rx="350" ry="200" fill="#C9A96A" opacity="0.08" filter="url(#glow9)"/>
+  <!-- Gift box -->
+  <g transform="translate(450, 800)">
+    <!-- Box bottom -->
+    <path d="M-200 0 L-250 -80 L250 -80 L200 0 z" fill="url(#boxGrad)" filter="url(#shadow9)"/>
+    <path d="M-250 -80 L-250 -280 L250 -280 L250 -80 z" fill="#E8DCC0" filter="url(#shadow9)"/>
+    <path d="M250 -80 L250 -280 L150 -300 L150 -100 z" fill="#D4C4A0" filter="url(#shadow9)"/>
+    <!-- Box top (lid) -->
+    <path d="M-260 -280 L260 -280 L260 -320 L-260 -320 z" fill="#EFE4D0" filter="url(#shadow9)"/>
+    <path d="M260 -280 L160 -300 L160 -340 L260 -320 z" fill="#DCC9A8" filter="url(#shadow9)"/>
+    <!-- Ribbon horizontal -->
+    <path d="M-250 -180 L250 -180 L250 -220 L-250 -220 z" fill="url(#ribbonGrad)"/>
+    <path d="M-250 -280 L-250 -320 L-210 -320 L-210 -280 z" fill="url(#ribbonGrad)"/>
+    <path d="M250 -280 L250 -320 L210 -320 L210 -280 z" fill="url(#ribbonGrad)"/>
+    <!-- Ribbon vertical -->
+    <path d="M-20 -340 L20 -340 L20 0 L-20 0 z" fill="url(#ribbonGrad)"/>
+    <!-- Bow on top -->
+    <path d="M-60 -360 q-20 -15 -30 0 q10 15 0 30 q20 15 30 0 q-10 -15 0 -30" fill="url(#ribbonGrad)"/>
+    <path d="M0 -360 q20 -15 30 0 q10 15 0 30 q-20 15 -30 0 q-10 -15 0 -30" fill="url(#ribbonGrad)"/>
+    <circle cx="0" cy="-340" r="10" fill="#A96A2F"/>
+    <!-- Mini flans visible inside -->
+    <g fill="url(#custard8)" transform="translate(0, -100)">
+      <ellipse cx="-100" cy="0" rx="25" ry="8" opacity="0.7"/>
+      <ellipse cx="0" cy="0" rx="25" ry="8" opacity="0.7"/>
+      <ellipse cx="100" cy="0" rx="25" ry="8" opacity="0.7"/>
+      <ellipse cx="-150" cy="0" rx="20" ry="7" opacity="0.5"/>
+      <ellipse cx="150" cy="0" rx="20" ry="7" opacity="0.5"/>
+    </g>
+  </g>
+  <!-- Gold dust -->
+  <g fill="#E3C88C" opacity="0.6">
+    <circle cx="380" cy="550" r="3"/>
+    <circle cx="520" cy="530" r="2"/>
+    <circle cx="400" cy="600" r="2"/>
+    <circle cx="500" cy="580" r="3"/>
+    <circle cx="450" cy="620" r="2.5"/>
+  </g>
+</svg>

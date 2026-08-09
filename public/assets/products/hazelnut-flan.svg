@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" fill="none" role="img" aria-label="Toasted Hazelnut Flan">
+  <defs>
+    <radialGradient id="bg7" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#24180C"/>
+      <stop offset="60%" stop-color="#1C1208"/>
+      <stop offset="100%" stop-color="#120A05"/>
+    </radialGradient>
+    <radialGradient id="plate7" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#E8DCC8"/>
+      <stop offset="80%" stop-color="#D4C8B0"/>
+      <stop offset="100%" stop-color="#C0B498"/>
+    </radialGradient>
+    <linearGradient id="custard7" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8C89A"/>
+      <stop offset="100%" stop-color="#D4B07A"/>
+    </linearGradient>
+    <linearGradient id="caramel7" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C9A96A"/>
+      <stop offset="100%" stop-color="#A8873F"/>
+    </linearGradient>
+    <filter id="shadow7" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="glow7"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg7)"/>
+  <ellipse cx="450" cy="180" rx="350" ry="200" fill="#D4B07A" opacity="0.08" filter="url(#glow7)"/>
+  <ellipse cx="450" cy="920" rx="380" ry="80" fill="#000" opacity="0.35"/>
+  <ellipse cx="450" cy="880" rx="340" ry="68" fill="url(#plate7)"/>
+  <ellipse cx="450" cy="886" rx="280" ry="52" fill="#F4E8D8"/>
+  <ellipse cx="450" cy="852" rx="170" ry="22" fill="#000" opacity="0.3" filter="url(#glow7)"/>
+  <path d="M280 830 v-280 q0 -180 170 -180 q170 0 170 180 v280 z" fill="url(#custard7)" filter="url(#shadow7)"/>
+  <ellipse cx="450" cy="450" rx="140" ry="38" fill="url(#caramel7)"/>
+  <g stroke="#A8873F" stroke-width="3" fill="none" opacity="0.9">
+    <path d="M340 450 q-18 70 4 140"/>
+    <path d="M410 440 q-12 90 8 180"/>
+    <path d="M500 445 q10 85 -2 160"/>
+    <path d="M570 450 q16 75 -6 145"/>
+  </g>
+  <ellipse cx="450" cy="450" rx="100" ry="26" fill="#C9A96A"/>
+  <!-- Hazelnuts on plate -->
+  <g fill="#4A3224" transform="translate(450, 890)">
+    <ellipse cx="-70" cy="5" rx="14" ry="10"/>
+    <ellipse cx="-30" cy="-5" rx="13" ry="9" transform="rotate(20)"/>
+    <ellipse cx="10" cy="0" rx="14" ry="10" transform="rotate(-15)"/>
+    <ellipse cx="50" cy="5" rx="13" ry="9" transform="rotate(10)"/>
+    <ellipse cx="85" cy="-2" rx="14" ry="10"/>
+  </g>
+  <!-- Gianduja drizzle -->
+  <g stroke="#5A3818" stroke-width="2.5" fill="none" opacity="0.8">
+    <path d="M360 520 q20 25 40 45 q15 15 35 5"/>
+    <path d="M520 510 q-15 30 -5 60 q10 20 30 25"/>
+  </g>
+</svg>

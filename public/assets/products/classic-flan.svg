@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" fill="none" role="img" aria-label="Classic Caramel Flan">
+  <defs>
+    <radialGradient id="bg1" cx="50%" cy="40%" r="80%">
+      <stop offset="0%" stop-color="#2B1B10"/>
+      <stop offset="60%" stop-color="#241509"/>
+      <stop offset="100%" stop-color="#120C08"/>
+    </radialGradient>
+    <radialGradient id="plate1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#F7F0E3"/>
+      <stop offset="80%" stop-color="#EFE4D0"/>
+      <stop offset="100%" stop-color="#DCC9A8"/>
+    </radialGradient>
+    <linearGradient id="custard1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#F7E3B4"/>
+      <stop offset="100%" stop-color="#EEC98A"/>
+    </linearGradient>
+    <linearGradient id="caramel1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#C97B2C"/>
+      <stop offset="100%" stop-color="#8A4514"/>
+    </linearGradient>
+    <filter id="shadow1" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="28" stdDeviation="24" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+    <filter id="glow1"><feGaussianBlur stdDeviation="35"/></filter>
+  </defs>
+  <rect width="900" height="1100" fill="url(#bg1)"/>
+  <ellipse cx="450" cy="180" rx="350" ry="200" fill="#E3C88C" opacity="0.08" filter="url(#glow1)"/>
+  <ellipse cx="450" cy="920" rx="380" ry="80" fill="#000" opacity="0.35"/>
+  <ellipse cx="450" cy="880" rx="340" ry="68" fill="url(#plate1)"/>
+  <ellipse cx="450" cy="886" rx="280" ry="52" fill="#FBF7EE"/>
+  <ellipse cx="450" cy="852" rx="170" ry="22" fill="#000" opacity="0.3" filter="url(#glow1)"/>
+  <path d="M280 830 v-280 q0 -180 170 -180 q170 0 170 180 v280 z" fill="url(#custard1)" filter="url(#shadow1)"/>
+  <ellipse cx="450" cy="450" rx="140" ry="38" fill="url(#caramel1)"/>
+  <g stroke="#8A4514" stroke-width="3" fill="none" opacity="0.9">
+    <path d="M340 450 q-18 70 4 140"/>
+    <path d="M410 440 q-12 90 8 180"/>
+    <path d="M500 445 q10 85 -2 160"/>
+    <path d="M570 450 q16 75 -6 145"/>
+  </g>
+  <ellipse cx="450" cy="450" rx="100" ry="26" fill="#B5651D"/>
+</svg>
