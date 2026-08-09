@@ -40,6 +40,11 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /Lo-Flan
         run: |
+          echo "::notice::node=$(node -v) npm=$(npm -v)"
+          echo "::notice::config sha256=$(sha256sum next.config.mjs | awk '{print $1}')"
+          echo "::notice::config size=$(wc -c < next.config.mjs)"
+          echo "::notice::config content: $(cat next.config.mjs | tr '\n' ' ')"
+          node -e "import('./next.config.mjs').then(()=>console.log('config loads OK')).catch(e=>{console.log('CONFIG LOAD FAILED:', e.message); console.log(e.stack.split('\n').slice(0,8).join(' '))})" || true
           set +e
           npm run build 2>&1 | tee /tmp/build.log
           status=${PIPESTATUS[0]}
