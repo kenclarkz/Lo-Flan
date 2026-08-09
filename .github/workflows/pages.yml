@@ -37,9 +37,16 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: /Lo-Flan
+        run: |
+          set +e
+          npm run build 2>&1 | tee /tmp/build.log
+          status=${PIPESTATUS[0]}
+          if [ $status -ne 0 ]; then
+            echo "::error::BUILD FAILED (exit $status). Log tail: $(tail -c 4000 /tmp/build.log | tr '\n' ' ')"
+            exit $status
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
