@@ -7,26 +7,35 @@ import { cn } from '@/lib/utils'
 
 const SCRUB_VH = 200
 
-// Both mobile and desktop use the new portrait clip. Desktop compensates for
-// the 9:16 aspect by framing it at full height and filling the wide gutters
-// with a blurred backdrop of the same footage.
-const HEVC_SRC = asset('/assets/video/3416428052367618.mp4')
-const H264_SRC = asset('/assets/video/3416428052367618-h264.mp4')
-const POSTER_SRC = asset('/assets/video/3416428052367618-poster.jpg')
+// Mobile scrubs the portrait clip (9:16) so it fills the phone viewport.
+// Desktop swaps to the landscape display clip (16:9) so it plays edge-to-edge
+// instead of pillarboxing the tall portrait footage.
+const DESKTOP_QUERY = '(min-width: 640px)'
+
+const MOBILE_HEVC_SRC = asset('/assets/video/3416428052367618.mp4')
+const MOBILE_H264_SRC = asset('/assets/video/3416428052367618-h264.mp4')
+const MOBILE_POSTER_SRC = asset('/assets/video/3416428052367618-poster.jpg')
+const DESKTOP_SRC = asset('/assets/video/flandisplay.mp4')
 
 // Ordered source candidates, reliability first.
 //
-// The portrait HEVC clip is Main profile so iOS/Safari decode it — it is
-// preferred for quality there — with H.264 as the guaranteed fallback that
-// wins source selection everywhere else.
+// Mobile prefers the portrait HEVC clip (Main profile so iOS/Safari decode it)
+// with H.264 as the guaranteed fallback that wins source selection everywhere
+// else. Desktop has a single landscape H.264 clip.
 //
 // `codecs` mirrors each file's real encoder profile. Declaring a codec string
 // is fragile: if `canPlayType()` returns "" (e.g. an unsupported/mismatched
 // codec string) the browser discards the source without even downloading it,
 // so `pickNext()` keeps advancing until one is accepted.
-const SOURCES = [
-  { src: HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
-  { src: H264_SRC, codecs: 'avc1.64001f' },
+type Source = { src: string; codecs: string }
+
+const MOBILE_SOURCES: Source[] = [
+  { src: MOBILE_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
+  { src: MOBILE_H264_SRC, codecs: 'avc1.64001f' },
+]
+
+const DESKTOP_SOURCES: Source[] = [
+  { src: DESKTOP_SRC, codecs: 'avc1.64001f' },
 ]
 
 /**
@@ -38,36 +47,39 @@ const SOURCES = [
  * forward and back with the wheel. Seeks are throttled to one per animation
  * frame and only when the target time actually changes.
  *
- * The portrait clip fills the viewport on mobile (< sm) and is framed at its
- * natural 9:16 aspect on desktop, where a blurred backdrop of the same footage
- * fills the gutters so it reads as full screen.
+ * The portrait clip fills the viewport on mobile (< sm); desktop plays the
+ * landscape display clip edge-to-edge. Sources are re-picked when the viewport
+ * crosses the breakpoint.
  */
 export default function ScrollVideo() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [ready, setReady] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [desktop, setDesktop] = useState(false)
 
   useEffect(() => {
     const video = videoRef.current
     if (!video || typeof window === 'undefined') return
     const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const desktopMq = window.matchMedia(DESKTOP_QUERY)
 
     let raf = 0
     let lastTime = -1
     let started = false
     let srcIndex = -1
+    let usable: Source[] = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
+
+    setDesktop(desktopMq.matches)
 
     const markReady = () => setReady(true)
     video.addEventListener('loadeddata', markReady)
     video.addEventListener('canplay', markReady)
 
-    // Pick the first source this browser can actually decode (HEVC first on
-    // iOS for quality, H.264 everywhere else), then keep advancing through
-    // the candidates if one fails so the scrub video always shows.
-    const usable = SOURCES
-
-    const probe = (s: (typeof SOURCES)[number]) => {
+    // Pick the first source this browser can actually decode, then keep
+    // advancing through the candidates if one fails so the scrub video always
+    // shows.
+    const probe = (s: Source) => {
       const el = document.createElement('video')
       const type = s.codecs ? `video/mp4; codecs="${s.codecs}"` : 'video/mp4'
       return el.canPlayType(type) !== ''
@@ -94,7 +106,6 @@ export default function ScrollVideo() {
       if (!pickNext()) markReady()
     }
     video.addEventListener('error', onVideoError)
-    pickNext()
 
     // Mobile browsers won't paint a paused video's frame until playback has
     // started once; give it a brief muted play so scrubbing renders every seek.
@@ -107,6 +118,21 @@ export default function ScrollVideo() {
         }).catch(() => {})
       }
     }
+
+    // Swap the clip when the viewport crosses the desktop/mobile breakpoint.
+    const onDesktopChange = () => {
+      const next = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
+      if (next === usable) return
+      usable = next
+      srcIndex = -1
+      lastTime = -1
+      setDesktop(desktopMq.matches)
+      pickNext()
+      unlock()
+    }
+    desktopMq.addEventListener?.('change', onDesktopChange)
+
+    pickNext()
     unlock()
 
     // Never trap the visitor behind the loader (e.g. blocked media, data saver).
@@ -141,6 +167,7 @@ export default function ScrollVideo() {
     return () => {
       cancelAnimationFrame(raf)
       window.clearTimeout(failSafe)
+      desktopMq.removeEventListener?.('change', onDesktopChange)
       video.removeEventListener('loadeddata', markReady)
       video.removeEventListener('canplay', markReady)
       video.removeEventListener('error', onVideoError)
@@ -152,20 +179,13 @@ export default function ScrollVideo() {
       <div ref={wrapRef} style={{ height: `${SCRUB_VH}svh` }} aria-hidden />
 
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden bg-espresso">
-        {/* Desktop: blurred 9:16 backdrop fills the wide gutters */}
-        <div
-          aria-hidden
-          className="absolute inset-0 hidden scale-125 bg-cover bg-center blur-2xl sm:block"
-          style={{ backgroundImage: `url(${POSTER_SRC})` }}
-        />
-
         <video
           ref={videoRef}
-          className="relative h-[100svh] w-full object-cover sm:h-screen sm:w-auto sm:aspect-[9/16] sm:object-contain"
+          className="relative h-[100svh] w-full object-cover"
           playsInline
           muted
           preload="auto"
-          poster={POSTER_SRC}
+          poster={desktop ? undefined : MOBILE_POSTER_SRC}
         />
 
         {/* Brand loader until the first frame is decodable */}
