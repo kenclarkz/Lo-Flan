@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 
-const SCRUB_VH = 480
+const SCRUB_VH = 200
 
 // Mobile gets the new portrait clip (optimized H264 fallback); desktop keeps
 // the original landscape clip unchanged.
@@ -18,16 +18,16 @@ const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
 const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
 
 /**
- * Viewport-sized (75%) video that scrubs with the page scroll.
+ * Full-screen video that scrubs with the page scroll.
  *
- * The video is `position: fixed` while a spacer of the same height provides
- * the scroll distance. As the user scrolls, the video's `currentTime` is
- * mapped linearly across its duration so the clip plays forward and back with
- * the wheel. Seeks are throttled to one per animation frame and only when the
- * target time actually changes.
+ * The video is `position: fixed` and fills the viewport while a spacer of the
+ * same height provides the scroll distance. As the user scrolls, the video's
+ * `currentTime` is mapped linearly across its duration so the clip plays
+ * forward and back with the wheel. Seeks are throttled to one per animation
+ * frame and only when the target time actually changes.
  *
- * On mobile (< sm) the portrait clip is shown full-height; desktop keeps the
- * original landscape clip at 75% viewport.
+ * On mobile (< sm) the portrait clip fills the viewport; desktop uses the
+ * original landscape clip, also full screen via `object-cover`.
  */
 export default function ScrollVideo() {
   const wrapRef = useRef<HTMLDivElement>(null)
@@ -114,7 +114,7 @@ export default function ScrollVideo() {
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden bg-espresso">
         <video
           ref={videoRef}
-          className="h-[80svh] w-auto object-contain sm:h-[75vh] sm:w-[75vw] sm:max-h-none sm:object-cover sm:scale-100"
+          className="h-[100svh] w-full object-cover sm:h-screen sm:w-screen"
           playsInline
           muted
           preload="auto"
