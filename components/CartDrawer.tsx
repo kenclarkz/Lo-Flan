@@ -31,7 +31,7 @@ export function CartDrawer() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6" data-lenis-prevent>
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-center text-cream/50">
               <svg className="w-16 h-16 mb-4 text-cream/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
