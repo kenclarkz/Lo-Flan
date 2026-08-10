@@ -93,10 +93,10 @@ export default function ScrollVideo() {
     <>
       <div ref={wrapRef} style={{ height: `${SCRUB_VH}svh` }} aria-hidden />
 
-      <div className="fixed inset-0 z-0 pointer-events-none bg-espresso">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-espresso">
         <video
           ref={videoRef}
-          className="h-full w-full object-contain md:object-cover"
+          className="h-full w-full object-contain md:object-cover scale-[1.3] md:scale-100"
           playsInline
           muted
           preload="auto"
