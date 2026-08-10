@@ -17,18 +17,21 @@ const MAX_STEP_SEC = 0.12
 // Ignore sub-threshold moves so an idle wheel doesn't re-issue seeks.
 const SEEK_EPSILON = 0.025
 
-// Every viewport scrubs the portrait lozoom clip (9:16). `object-cover` crops
-// it on wide desktop screens while the phone fills edge-to-edge.
+// Desktop scrubs the landscape cut (16:9) of the journey clip, mobile the
+// portrait cut (9:16), so each viewport sees a full-frame composition instead
+// of a heavy `object-cover` crop.
 const DESKTOP_QUERY = '(min-width: 640px)'
 
-const LOZOOM_HEVC_SRC = asset('/assets/video/lozoom.mp4')
-const H264_FALLBACK_SRC = asset('/assets/video/3416428052367618-h264.mp4')
+const DESKTOP_HEVC_SRC = asset('/assets/video/flanvideo.mp4')
+const DESKTOP_H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
+const MOBILE_HEVC_SRC = asset('/assets/video/lozoom.mp4')
+const MOBILE_H264_SRC = asset('/assets/video/3416428052367618-h264.mp4')
 
 // Ordered source candidates, reliability first.
 //
-// Both viewports prefer the portrait HEVC clip (Main profile so iOS/Safari
-// decode it) with H.264 as the guaranteed fallback that wins source selection
-// everywhere else.
+// Both viewports prefer the HEVC clip (Main profile so iOS/Safari decode it)
+// with H.264 as the guaranteed fallback that wins source selection everywhere
+// else.
 //
 // `codecs` mirrors each file's real encoder profile. Declaring a codec string
 // is fragile: if `canPlayType()` returns "" (e.g. an unsupported/mismatched
@@ -37,13 +40,13 @@ const H264_FALLBACK_SRC = asset('/assets/video/3416428052367618-h264.mp4')
 type Source = { src: string; codecs: string }
 
 const MOBILE_SOURCES: Source[] = [
-  { src: LOZOOM_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
-  { src: H264_FALLBACK_SRC, codecs: 'avc1.64001f' },
+  { src: MOBILE_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
+  { src: MOBILE_H264_SRC, codecs: 'avc1.64001f' },
 ]
 
 const DESKTOP_SOURCES: Source[] = [
-  { src: LOZOOM_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
-  { src: H264_FALLBACK_SRC, codecs: 'avc1.64001f' },
+  { src: DESKTOP_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
+  { src: DESKTOP_H264_SRC, codecs: 'avc1.64001f' },
 ]
 
 /**
@@ -58,9 +61,10 @@ const DESKTOP_SOURCES: Source[] = [
  * exports can't decode a distant seek in one frame, which is what makes the
  * picture stutter and jump).
  *
- * The portrait lozoom clip fills the viewport on every screen (cropped to
- * cover on wide desktop displays). Sources are re-picked when the viewport
- * crosses the breakpoint.
+ * Desktop uses the landscape cut of the clip (16:9, `object-cover` trims only
+ * on ultrawide displays) while mobile uses the portrait cut that fills
+ * edge-to-edge. Sources are re-picked when the viewport crosses the
+ * breakpoint.
  */
 export default function ScrollVideo() {
   const wrapRef = useRef<HTMLDivElement>(null)
