@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 
-const SCRUB_VH = 500
+const SCRUB_VH = 300
 
 /**
  * Full-screen video that scrubs with the page scroll.
