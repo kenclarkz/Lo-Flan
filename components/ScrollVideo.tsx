@@ -17,6 +17,26 @@ const HEVC_SRC = asset('/assets/video/flanvideo.mp4')
 const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
 const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
 
+// Ordered source candidates, reliability first.
+//
+// The desktop HEVC clip (`flanvideo.mp4`) is Range-Extensions (Rext) profile —
+// no browser's HEVC decoder (Safari/Chrome only support Main/Main 10) can
+// decode it — so the H.264 copy must win source selection there. On mobile the
+// portrait HEVC clip *is* Main profile and iOS decodes it, so it is preferred
+// for quality, with H.264 as the guaranteed fallback.
+//
+// `codecs` mirrors each file's real encoder profile. Declaring a codec string
+// is fragile: if `canPlayType()` returns "" (e.g. an unsupported/mismatched
+// codec string) the browser discards the source without even downloading it.
+// The empty `codecs` entry therefore omits the codec attribute and just says
+// `video/mp4`, which every browser attempts.
+const SOURCES = [
+  { mobile: true, src: MOBILE_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
+  { mobile: true, src: MOBILE_H264_SRC, codecs: 'avc1.64001f' },
+  { mobile: false, src: H264_SRC, codecs: 'avc1.64001f' },
+  { mobile: false, src: HEVC_SRC, codecs: '' },
+]
+
 /**
  * Full-screen video that scrubs with the page scroll.
  *
@@ -52,10 +72,46 @@ export default function ScrollVideo() {
     let raf = 0
     let lastTime = -1
     let started = false
+    let srcIndex = -1
 
     const markReady = () => setReady(true)
     video.addEventListener('loadeddata', markReady)
     video.addEventListener('canplay', markReady)
+
+    // Pick the first source this browser can actually decode (HEVC first on
+    // iOS for quality, H.264 everywhere else), then keep advancing through
+    // the candidates if one fails so the scrub video always shows.
+    const mq = window.matchMedia('(max-width: 639px)')
+    const usable = SOURCES.filter((s) => s.mobile === mq.matches)
+
+    const probe = (s: (typeof SOURCES)[number]) => {
+      const el = document.createElement('video')
+      const type = s.codecs ? `video/mp4; codecs="${s.codecs}"` : 'video/mp4'
+      return el.canPlayType(type) !== ''
+    }
+
+    const tryCandidate = (i: number) => {
+      if (i < 0 || i >= usable.length) return false
+      srcIndex = i
+      video.src = usable[i].src
+      video.load()
+      return true
+    }
+
+    const pickNext = () => {
+      for (let i = srcIndex + 1; i < usable.length; i++) {
+        if (probe(usable[i])) return tryCandidate(i)
+      }
+      // No candidate advertises support — attempt the next one anyway so the
+      // browser has a chance to load it before we give up on the loader.
+      return tryCandidate(srcIndex + 1)
+    }
+
+    const onVideoError = () => {
+      if (!pickNext()) markReady()
+    }
+    video.addEventListener('error', onVideoError)
+    pickNext()
 
     // Mobile browsers won't paint a paused video's frame until playback has
     // started once; give it a brief muted play so scrubbing renders every seek.
@@ -104,6 +160,7 @@ export default function ScrollVideo() {
       window.clearTimeout(failSafe)
       video.removeEventListener('loadeddata', markReady)
       video.removeEventListener('canplay', markReady)
+      video.removeEventListener('error', onVideoError)
     }
   }, [])
 
@@ -119,12 +176,7 @@ export default function ScrollVideo() {
           muted
           preload="auto"
           poster={poster}
-        >
-          <source media="(max-width: 639px)" src={MOBILE_HEVC_SRC} type='video/mp4; codecs="hvc1.1.6.L120.B0"' />
-          <source media="(max-width: 639px)" src={MOBILE_H264_SRC} type='video/mp4; codecs="avc1.64001f"' />
-          <source src={HEVC_SRC} type='video/mp4; codecs="hvc1.1.6.L93.B0"' />
-          <source src={H264_SRC} type='video/mp4; codecs="avc1.64001f"' />
-        </video>
+        />
 
         {/* Brand loader until the first frame is decodable */}
         {!ready && (
