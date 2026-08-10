@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 
-const SCRUB_VH = 300
+const SCRUB_VH = 400
 
 const HEVC_SRC = asset('/assets/video/flanvideo.mp4')
 const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
