@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { asset, BASE_PATH } from '@/lib/paths'
-import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
 import { SmoothScroll } from '@/components/SmoothScroll'
 
@@ -46,7 +45,6 @@ export default function RootLayout({
       <body className="bg-espresso text-cream">
         <SmoothScroll />
         <div className="grain" aria-hidden />
-        <Navigation />
         {children}
         <Footer />
       </body>
