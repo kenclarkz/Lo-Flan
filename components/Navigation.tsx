@@ -3,17 +3,15 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useCart } from '@/lib/cart'
 import { usePathname } from 'next/navigation'
 import { asset, BASE_PATH } from '@/lib/paths'
-import { Menu, X, ShoppingBag, ChevronDown } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function Navigation() {
   const pathname = usePathname()
   // usePathname includes the GitHub Pages basePath, but nav hrefs don't.
   const current = pathname.startsWith(BASE_PATH) ? pathname.slice(BASE_PATH.length) || '/' : pathname
-  const { count, open, setOpen } = useCart()
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const navRef = useRef<HTMLElement>(null)
@@ -83,20 +81,6 @@ export function Navigation() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
-            {/* Cart button */}
-            <button
-              onClick={() => setOpen(!open)}
-              className="relative p-2 text-cream/70 hover:text-gold transition-colors lg:p-3"
-              aria-label={`Cart${count > 0 ? `, ${count} items` : ', empty'}`}
-            >
-              <ShoppingBag className="w-6 h-6" strokeWidth={1.8} />
-              {count > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-gold text-espresso text-[0.55rem] font-medium px-1">
-                  {count > 99 ? '99+' : count}
-                </span>
-              )}
-            </button>
-
             {/* Mobile menu button */}
             <button
               className="lg:hidden p-2 text-cream/70 hover:text-gold transition-colors"
@@ -126,15 +110,6 @@ export function Navigation() {
                   {link.label}
                 </Link>
               ))}
-              <div className="pt-4 border-t border-cream/10 flex items-center justify-between">
-                <span className="text-cream/70">Cart</span>
-                <button
-                  onClick={() => { setMobileOpen(false); setOpen(true); }}
-                  className="text-gold font-medium"
-                >
-                  {count > 0 ? `${count} items` : 'Empty'}
-                </button>
-              </div>
             </div>
           </div>
         )}

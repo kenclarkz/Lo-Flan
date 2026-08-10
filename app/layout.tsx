@@ -3,8 +3,6 @@ import './globals.css'
 import { asset, BASE_PATH } from '@/lib/paths'
 import { Navigation } from '@/components/Navigation'
 import { Footer } from '@/components/Footer'
-import { CartProvider } from '@/lib/cart'
-import { CartDrawer } from '@/components/CartDrawer'
 import { SmoothScroll } from '@/components/SmoothScroll'
 
 export const metadata: Metadata = {
@@ -46,14 +44,11 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-espresso text-cream">
-        <CartProvider>
-          <SmoothScroll />
-          <div className="grain" aria-hidden />
-          <Navigation />
-          {children}
-          <Footer />
-          <CartDrawer />
-        </CartProvider>
+        <SmoothScroll />
+        <div className="grain" aria-hidden />
+        <Navigation />
+        {children}
+        <Footer />
       </body>
     </html>
   )
