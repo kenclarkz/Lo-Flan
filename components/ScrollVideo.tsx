@@ -7,6 +7,10 @@ import { cn } from '@/lib/utils'
 
 const SCRUB_VH = 300
 
+const HEVC_SRC = asset('/assets/video/flanvideo.mp4')
+const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
+const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
+
 /**
  * Full-screen video that scrubs with the page scroll.
  *
@@ -30,6 +34,26 @@ export default function ScrollVideo() {
     let raf = 0
     let lastTime = -1
     let started = false
+
+    const markReady = () => setReady(true)
+    video.addEventListener('loadeddata', markReady)
+    video.addEventListener('canplay', markReady)
+
+    // Mobile browsers won't paint a paused video's frame until playback has
+    // started once; give it a brief muted play so scrubbing renders every seek.
+    const unlock = () => {
+      const p = video.play()
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          markReady()
+          setTimeout(() => video.pause(), 60)
+        }).catch(() => {})
+      }
+    }
+    unlock()
+
+    // Never trap the visitor behind the loader (e.g. blocked media, data saver).
+    const failSafe = window.setTimeout(markReady, 12000)
 
     const update = () => {
       raf = requestAnimationFrame(update)
@@ -57,7 +81,12 @@ export default function ScrollVideo() {
       }
     }
     raf = requestAnimationFrame(update)
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      window.clearTimeout(failSafe)
+      video.removeEventListener('loadeddata', markReady)
+      video.removeEventListener('canplay', markReady)
+    }
   }, [])
 
   return (
@@ -67,12 +96,15 @@ export default function ScrollVideo() {
       <div className="fixed inset-0 z-0 pointer-events-none bg-espresso">
         <video
           ref={videoRef}
-          src={asset('/assets/video/flanvideo.mp4')}
           className="h-full w-full object-cover"
           playsInline
           muted
           preload="auto"
-        />
+          poster={POSTER_SRC}
+        >
+          <source src={HEVC_SRC} type='video/mp4; codecs="hvc1.1.6.L93.B0"' />
+          <source src={H264_SRC} type='video/mp4; codecs="avc1.64001f"' />
+        </video>
 
         {/* Brand loader until the first frame is decodable */}
         {!ready && (
