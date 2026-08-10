@@ -7,6 +7,16 @@ import { cn } from '@/lib/utils'
 
 const SCRUB_VH = 200
 
+// Max the video time may move per frame (≈7x realtime at 60fps). Seeking
+// straight to the scroll target across a whole keyframe gap forces the decoder
+// to walk hundreds of frames, which it can't paint in a single frame — the
+// picture lags then jumps. Capping the step keeps every seek a few frames past
+// a keyframe so the decoded frame is ready on time and the motion is smooth.
+const MAX_STEP_SEC = 0.12
+
+// Ignore sub-threshold moves so an idle wheel doesn't re-issue seeks.
+const SEEK_EPSILON = 0.025
+
 // Mobile scrubs the portrait clip (9:16) so it fills the phone viewport.
 // Desktop swaps to the landscape display clip (16:9) so it plays edge-to-edge
 // instead of pillarboxing the tall portrait footage.
@@ -43,9 +53,12 @@ const DESKTOP_SOURCES: Source[] = [
  *
  * The video is `position: fixed` and fills the viewport while a spacer of the
  * same height provides the scroll distance. As the user scrolls, the video's
- * `currentTime` is mapped linearly across its duration so the clip plays
- * forward and back with the wheel. Seeks are throttled to one per animation
- * frame and only when the target time actually changes.
+ * `currentTime` is eased across its duration so the clip plays forward and
+ * back with the wheel. The per-frame step is capped: a fast flick glides the
+ * clip toward the scroll position instead of teleporting it, so it reads as
+ * watching the video rather than dragging a progress bar (sparse-keyframe
+ * exports can't decode a distant seek in one frame, which is what makes the
+ * picture stutter and jump).
  *
  * The portrait clip fills the viewport on mobile (< sm); desktop plays the
  * landscape display clip edge-to-edge. Sources are re-picked when the viewport
@@ -65,7 +78,6 @@ export default function ScrollVideo() {
     const desktopMq = window.matchMedia(DESKTOP_QUERY)
 
     let raf = 0
-    let lastTime = -1
     let started = false
     let srcIndex = -1
     let usable: Source[] = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
@@ -125,7 +137,6 @@ export default function ScrollVideo() {
       if (next === usable) return
       usable = next
       srcIndex = -1
-      lastTime = -1
       setDesktop(desktopMq.matches)
       pickNext()
       unlock()
@@ -153,10 +164,19 @@ export default function ScrollVideo() {
       if (total <= 0 || video.readyState < 1) return
 
       const p = Math.min(1, Math.max(0, window.scrollY / total))
-      const t = p * dur
-      if (Math.abs(t - lastTime) > 0.02) {
-        lastTime = t
-        video.currentTime = t
+      const target = p * dur
+      const cur = video.currentTime
+
+      // Ease the clip toward the scroll target without ever stepping more than
+      // MAX_STEP_SEC per frame. Slow scrolling tracks 1:1; a fast flick makes
+      // the clip glide at the cap and keep playing until it catches up with the
+      // visitor's position — exactly like watching the video.
+      let next = target
+      if (Math.abs(target - cur) > MAX_STEP_SEC) {
+        next = cur + Math.sign(target - cur) * MAX_STEP_SEC
+      }
+      if (Math.abs(next - cur) >= SEEK_EPSILON) {
+        video.currentTime = Math.min(dur, Math.max(0, next))
       }
       if (window.scrollY > 12 && !started) {
         started = true
