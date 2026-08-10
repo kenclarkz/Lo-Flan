@@ -7,34 +7,26 @@ import { cn } from '@/lib/utils'
 
 const SCRUB_VH = 200
 
-// Mobile gets the new portrait clip (optimized H264 fallback); desktop keeps
-// the original landscape clip unchanged.
-const MOBILE_HEVC_SRC = asset('/assets/video/3416428052367618.mp4')
-const MOBILE_H264_SRC = asset('/assets/video/3416428052367618-h264.mp4')
-const MOBILE_POSTER_SRC = asset('/assets/video/3416428052367618-poster.jpg')
-
-const HEVC_SRC = asset('/assets/video/flanvideo.mp4')
-const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
-const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
+// Both mobile and desktop use the new portrait clip. Desktop compensates for
+// the 9:16 aspect by framing it at full height and filling the wide gutters
+// with a blurred backdrop of the same footage.
+const HEVC_SRC = asset('/assets/video/3416428052367618.mp4')
+const H264_SRC = asset('/assets/video/3416428052367618-h264.mp4')
+const POSTER_SRC = asset('/assets/video/3416428052367618-poster.jpg')
 
 // Ordered source candidates, reliability first.
 //
-// The desktop HEVC clip (`flanvideo.mp4`) is Range-Extensions (Rext) profile —
-// no browser's HEVC decoder (Safari/Chrome only support Main/Main 10) can
-// decode it — so the H.264 copy must win source selection there. On mobile the
-// portrait HEVC clip *is* Main profile and iOS decodes it, so it is preferred
-// for quality, with H.264 as the guaranteed fallback.
+// The portrait HEVC clip is Main profile so iOS/Safari decode it — it is
+// preferred for quality there — with H.264 as the guaranteed fallback that
+// wins source selection everywhere else.
 //
 // `codecs` mirrors each file's real encoder profile. Declaring a codec string
 // is fragile: if `canPlayType()` returns "" (e.g. an unsupported/mismatched
-// codec string) the browser discards the source without even downloading it.
-// The empty `codecs` entry therefore omits the codec attribute and just says
-// `video/mp4`, which every browser attempts.
+// codec string) the browser discards the source without even downloading it,
+// so `pickNext()` keeps advancing until one is accepted.
 const SOURCES = [
-  { mobile: true, src: MOBILE_HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
-  { mobile: true, src: MOBILE_H264_SRC, codecs: 'avc1.64001f' },
-  { mobile: false, src: H264_SRC, codecs: 'avc1.64001f' },
-  { mobile: false, src: HEVC_SRC, codecs: '' },
+  { src: HEVC_SRC, codecs: 'hvc1.1.6.L120.B0' },
+  { src: H264_SRC, codecs: 'avc1.64001f' },
 ]
 
 /**
@@ -46,23 +38,15 @@ const SOURCES = [
  * forward and back with the wheel. Seeks are throttled to one per animation
  * frame and only when the target time actually changes.
  *
- * On mobile (< sm) the portrait clip fills the viewport; desktop uses the
- * original landscape clip, also full screen via `object-cover`.
+ * The portrait clip fills the viewport on mobile (< sm) and is framed at its
+ * natural 9:16 aspect on desktop, where a blurred backdrop of the same footage
+ * fills the gutters so it reads as full screen.
  */
 export default function ScrollVideo() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [ready, setReady] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const [poster, setPoster] = useState(POSTER_SRC)
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 639px)')
-    const apply = () => setPoster(mq.matches ? MOBILE_POSTER_SRC : POSTER_SRC)
-    apply()
-    mq.addEventListener?.('change', apply)
-    return () => mq.removeEventListener?.('change', apply)
-  }, [])
 
   useEffect(() => {
     const video = videoRef.current
@@ -81,8 +65,7 @@ export default function ScrollVideo() {
     // Pick the first source this browser can actually decode (HEVC first on
     // iOS for quality, H.264 everywhere else), then keep advancing through
     // the candidates if one fails so the scrub video always shows.
-    const mq = window.matchMedia('(max-width: 639px)')
-    const usable = SOURCES.filter((s) => s.mobile === mq.matches)
+    const usable = SOURCES
 
     const probe = (s: (typeof SOURCES)[number]) => {
       const el = document.createElement('video')
@@ -169,13 +152,20 @@ export default function ScrollVideo() {
       <div ref={wrapRef} style={{ height: `${SCRUB_VH}svh` }} aria-hidden />
 
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden bg-espresso">
+        {/* Desktop: blurred 9:16 backdrop fills the wide gutters */}
+        <div
+          aria-hidden
+          className="absolute inset-0 hidden scale-125 bg-cover bg-center blur-2xl sm:block"
+          style={{ backgroundImage: `url(${POSTER_SRC})` }}
+        />
+
         <video
           ref={videoRef}
-          className="h-[100svh] w-full object-cover sm:h-screen sm:w-screen"
+          className="relative h-[100svh] w-full object-cover sm:h-screen sm:w-auto sm:aspect-[9/16] sm:object-contain"
           playsInline
           muted
           preload="auto"
-          poster={poster}
+          poster={POSTER_SRC}
         />
 
         {/* Brand loader until the first frame is decodable */}
