@@ -5,14 +5,14 @@ import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 
-const SCRUB_VH = 680
+const SCRUB_VH = 480
 
 const HEVC_SRC = asset('/assets/video/flanvideo.mp4')
 const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
 const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
 
 /**
- * Full-screen video that scrubs with the page scroll.
+ * Viewport-sized (90%) video that scrubs with the page scroll.
  *
  * The video is `position: fixed` while a spacer of the same height provides
  * the scroll distance. As the user scrolls, the video's `currentTime` is
@@ -93,10 +93,10 @@ export default function ScrollVideo() {
     <>
       <div ref={wrapRef} style={{ height: `${SCRUB_VH}svh` }} aria-hidden />
 
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-espresso">
+      <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden bg-espresso">
         <video
           ref={videoRef}
-          className="h-full w-full object-contain md:object-cover scale-[1.3] md:scale-100"
+          className="h-[90vh] w-[90vw] object-cover"
           playsInline
           muted
           preload="auto"
