@@ -7,6 +7,12 @@ import { cn } from '@/lib/utils'
 
 const SCRUB_VH = 480
 
+// Mobile gets the new portrait clip (optimized H264 fallback); desktop keeps
+// the original landscape clip unchanged.
+const MOBILE_HEVC_SRC = asset('/assets/video/3416428052367618.mp4')
+const MOBILE_H264_SRC = asset('/assets/video/3416428052367618-h264.mp4')
+const MOBILE_POSTER_SRC = asset('/assets/video/3416428052367618-poster.jpg')
+
 const HEVC_SRC = asset('/assets/video/flanvideo.mp4')
 const H264_SRC = asset('/assets/video/flanvideo-h264.mp4')
 const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
@@ -19,12 +25,24 @@ const POSTER_SRC = asset('/assets/video/flanvideo-poster.jpg')
  * mapped linearly across its duration so the clip plays forward and back with
  * the wheel. Seeks are throttled to one per animation frame and only when the
  * target time actually changes.
+ *
+ * On mobile (< sm) the portrait clip is shown full-height; desktop keeps the
+ * original landscape clip at 75% viewport.
  */
 export default function ScrollVideo() {
   const wrapRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const [ready, setReady] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [poster, setPoster] = useState(POSTER_SRC)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const apply = () => setPoster(mq.matches ? MOBILE_POSTER_SRC : POSTER_SRC)
+    apply()
+    mq.addEventListener?.('change', apply)
+    return () => mq.removeEventListener?.('change', apply)
+  }, [])
 
   useEffect(() => {
     const video = videoRef.current
@@ -96,12 +114,14 @@ export default function ScrollVideo() {
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden bg-espresso">
         <video
           ref={videoRef}
-          className="w-[75vw] max-h-[75vh] object-contain scale-[1.05] sm:h-[75vh] sm:max-h-none sm:object-cover sm:scale-100"
+          className="h-[80svh] w-auto object-contain sm:h-[75vh] sm:w-[75vw] sm:max-h-none sm:object-cover sm:scale-100"
           playsInline
           muted
           preload="auto"
-          poster={POSTER_SRC}
+          poster={poster}
         >
+          <source media="(max-width: 639px)" src={MOBILE_HEVC_SRC} type='video/mp4; codecs="hvc1.1.6.L120.B0"' />
+          <source media="(max-width: 639px)" src={MOBILE_H264_SRC} type='video/mp4; codecs="avc1.64001f"' />
           <source src={HEVC_SRC} type='video/mp4; codecs="hvc1.1.6.L93.B0"' />
           <source src={H264_SRC} type='video/mp4; codecs="avc1.64001f"' />
         </video>
