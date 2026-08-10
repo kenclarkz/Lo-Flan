@@ -96,7 +96,7 @@ export default function ScrollVideo() {
       <div className="fixed inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden bg-espresso">
         <video
           ref={videoRef}
-          className="h-[75vh] w-[75vw] object-cover"
+          className="h-[75vh] w-[75vw] object-cover scale-[1.3] sm:scale-100"
           playsInline
           muted
           preload="auto"
