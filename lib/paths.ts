@@ -4,7 +4,7 @@
  * Image components handle this automatically via `basePath`; this helper does
  * the same for raw asset URLs passed to three.js loaders, <img>, fetch, etc.
  */
-export const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH || '/Lo-Flan').replace(/\/+$/, '')
+export const BASE_PATH = (process.env.NEXT_PUBLIC_BASE_PATH ?? '/Lo-Flan').replace(/\/+$/, '')
 
 export function asset(path: string): string {
   if (!path) return path

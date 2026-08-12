@@ -18,8 +18,8 @@ export const metadata: Metadata = {
     description:
       'A luxury handmade flan bakery. Cinematic storytelling, handcrafted desserts and unforgettable moments.',
     type: 'website',
-    url: 'https://kenclarkz.github.io/Lo-Flan/',
-    images: [`https://kenclarkz.github.io${BASE_PATH}/assets/brand/logo.png`],
+    url: process.env.NEXT_PUBLIC_SITE_URL || undefined,
+    images: [`${process.env.NEXT_PUBLIC_SITE_URL || ''}${asset('/assets/brand/logo.png')}`],
   },
 }
 

@@ -37,7 +37,8 @@ jobs:
 
       - name: Build
         env:
-          NEXT_PUBLIC_BASE_PATH: /Lo-Flan
+          NEXT_PUBLIC_BASE_PATH: ''
+          NEXT_PUBLIC_SITE_URL: 'https://loflan.com'
         run: |
           set +e
           npm run build 2>&1 | tee /tmp/build.log

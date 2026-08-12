@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || '/Lo-Flan').replace(/\/+$/, '')
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? '/Lo-Flan').replace(/\/+$/, '')
 
 const nextConfig = {
   output: 'export',
