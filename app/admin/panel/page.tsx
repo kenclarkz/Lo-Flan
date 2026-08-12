@@ -1,11 +1,21 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type DragEvent } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type FormEvent,
+} from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft,
   Check,
+  ExternalLink,
+  Github,
+  KeyRound,
   Loader2,
   Lock,
   LogOut,
@@ -16,62 +26,26 @@ import {
   UploadCloud,
 } from 'lucide-react'
 import {
+  GITHUB_BRANCH,
+  GITHUB_OWNER,
+  GITHUB_REPO,
   deleteVideo,
   formatBytes,
-  getLibrary,
-  getScrollSelection,
-  getVideoBlob,
+  getPanelConfig,
+  getToken,
   isAuthed,
   logout,
-  saveVideoBlob,
-  setScrollSelection,
-  type ScrollSelection,
+  saveVideo,
+  scrollVideoUrl,
+  setScrollConfig,
+  setToken,
+  verifyToken,
+  type ScrollVideoConfig,
   type VideoMeta,
 } from '@/lib/admin'
 import { cn } from '@/lib/utils'
 
-function VideoPreview({ id }: { id: string }) {
-  const [url, setUrl] = useState<string | null>(null)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    let objectUrl: string | null = null
-    let cancelled = false
-    getVideoBlob(id)
-      .then((blob) => {
-        if (cancelled) return
-        if (blob) {
-          objectUrl = URL.createObjectURL(blob)
-          setUrl(objectUrl)
-        } else {
-          setError(true)
-        }
-      })
-      .catch(() => setError(true))
-    return () => {
-      cancelled = true
-      if (objectUrl) URL.revokeObjectURL(objectUrl)
-    }
-  }, [id])
-
-  if (error) {
-    return (
-      <div className="w-full h-full flex items-center justify-center text-cream/40 text-xs">
-        Unavailable
-      </div>
-    )
-  }
-  if (!url) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <Loader2 className="w-5 h-5 text-gold animate-spin" />
-      </div>
-    )
-  }
-  return (
-    <video src={url} muted loop playsInline preload="metadata" className="w-full h-full object-cover" />
-  )
-}
+const EMPTY_CONFIG: ScrollVideoConfig = { videos: [], updatedAt: 0 }
 
 function ScrollStatus({
   isDesktop,
@@ -92,16 +66,33 @@ export default function AdminPanelPage() {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const [library, setLibrary] = useState<VideoMeta[]>([])
-  const [selection, setSelection] = useState<ScrollSelection>({})
+  const [config, setConfig] = useState<ScrollVideoConfig>(EMPTY_CONFIG)
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [notice, setNotice] = useState('')
 
-  const refresh = useCallback(() => {
-    setLibrary(getLibrary())
-    setSelection(getScrollSelection())
+  const [token, setTokenState] = useState(() => getToken())
+  const [tokenDraft, setTokenDraft] = useState(() => getToken())
+  const [showTokenForm, setShowTokenForm] = useState(false)
+  const [verifying, setVerifying] = useState(false)
+  const [tokenError, setTokenError] = useState('')
+
+  const flash = useCallback((msg: string) => {
+    setNotice(msg)
+    window.setTimeout(() => setNotice(''), 5000)
   }, [])
+
+  const refresh = useCallback(async () => {
+    if (!getToken()) {
+      setConfig(EMPTY_CONFIG)
+      return
+    }
+    try {
+      setConfig(await getPanelConfig())
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not read the video config from GitHub.')
+    }
+  }, [flash])
 
   useEffect(() => {
     if (!isAuthed()) {
@@ -111,9 +102,24 @@ export default function AdminPanelPage() {
     refresh()
   }, [router, refresh])
 
-  const flash = (msg: string) => {
-    setNotice(msg)
-    window.setTimeout(() => setNotice(''), 4000)
+  const saveToken = async (e: FormEvent) => {
+    e.preventDefault()
+    setTokenError('')
+    setVerifying(true)
+    const value = tokenDraft.trim()
+    setToken(value)
+    setTokenState(value)
+    try {
+      if (!(await verifyToken())) {
+        setTokenError('GitHub rejected this token. It needs Contents read & write access on the repo.')
+      } else {
+        setShowTokenForm(false)
+        flash('GitHub connected.')
+        refresh()
+      }
+    } finally {
+      setVerifying(false)
+    }
   }
 
   const handleFiles = async (files: FileList | File[]) => {
@@ -124,31 +130,41 @@ export default function AdminPanelPage() {
       flash('Please drop video files (MP4, MOV, WebM).')
       return
     }
+    if (!token) {
+      flash('Connect GitHub first — videos are committed straight to the repo.')
+      return
+    }
 
     setUploading(true)
-    const first = videos[0]
     const saved: VideoMeta[] = []
     try {
       for (const file of videos) {
-        saved.push(await saveVideoBlob(file))
+        saved.push(await saveVideo(file))
       }
-    } catch {
-      flash('Could not save video — the file may be too large for this browser.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not save the video.')
     } finally {
       setUploading(false)
     }
 
-    const sel = getScrollSelection()
-    if (saved.length > 0 && !sel.desktop) {
-      sel.desktop = saved[0].id
-      setScrollSelection(sel)
+    if (saved.length > 0) {
+      try {
+        const cfg = await getPanelConfig()
+        if (!cfg.desktop) cfg.desktop = saved[0].file
+        await setScrollConfig(cfg)
+        setConfig(cfg)
+      } catch (err) {
+        flash(err instanceof Error ? err.message : 'Video saved, but could not update the homepage selection.')
+      }
+      refresh()
+      flash(
+        saved.length === 1
+          ? 'Video pushed to GitHub. Reload the homepage and scroll to see it.'
+          : `${saved.length} videos pushed to GitHub. Reload the homepage and scroll to see them.`
+      )
+    } else {
+      refresh()
     }
-    refresh()
-    flash(
-      saved.length > 0
-        ? `${saved.length === 1 ? 'Video' : `${saved.length} videos`} saved. Head back to the homepage and scroll to see it.`
-        : 'No videos were saved.'
-    )
   }
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -157,32 +173,51 @@ export default function AdminPanelPage() {
     handleFiles(e.dataTransfer.files)
   }
 
-  const assignDesktop = (id: string) => {
-    const sel = getScrollSelection()
-    sel.desktop = id
-    setScrollSelection(sel)
-    setSelection(sel)
-    flash('Desktop scroll video updated.')
+  const assignDesktop = async (file: string) => {
+    try {
+      const cfg = await getPanelConfig()
+      cfg.desktop = file
+      await setScrollConfig(cfg)
+      setConfig(cfg)
+      flash('Desktop scroll video updated — pushed to GitHub.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not update the desktop video.')
+    }
   }
 
-  const assignMobile = (id: string) => {
-    const sel = getScrollSelection()
-    sel.mobile = id
-    setScrollSelection(sel)
-    setSelection(sel)
-    flash('Mobile scroll video updated.')
+  const assignMobile = async (file: string) => {
+    try {
+      const cfg = await getPanelConfig()
+      cfg.mobile = file
+      await setScrollConfig(cfg)
+      setConfig(cfg)
+      flash('Mobile scroll video updated — pushed to GitHub.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not update the mobile video.')
+    }
   }
 
-  const clearScrollVideo = () => {
-    setScrollSelection({})
-    setSelection({})
-    flash('Back to the default videos.')
+  const clearScrollVideo = async () => {
+    try {
+      const cfg = await getPanelConfig()
+      cfg.desktop = undefined
+      cfg.mobile = undefined
+      await setScrollConfig(cfg)
+      setConfig(cfg)
+      flash('Back to the default videos — pushed to GitHub.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not reset the scroll video.')
+    }
   }
 
   const remove = async (id: string) => {
-    await deleteVideo(id)
-    refresh()
-    flash('Video removed.')
+    try {
+      await deleteVideo(id)
+      refresh()
+      flash('Video removed from the repo.')
+    } catch (err) {
+      flash(err instanceof Error ? err.message : 'Could not remove the video.')
+    }
   }
 
   const handleLogout = () => {
@@ -205,8 +240,8 @@ export default function AdminPanelPage() {
             </Link>
             <h1 className="display text-4xl">Admin Panel</h1>
             <p className="text-sm text-cream/50 mt-1">
-              Manage the scrolling video on the homepage. Changes are saved in
-              this browser and apply instantly on the next page load.
+              Manage the scrolling video on the homepage. Uploads are committed
+              straight to your GitHub repo and apply to every visitor.
             </p>
           </div>
           <button onClick={handleLogout} className="btn-ghost px-5 py-3">
@@ -221,6 +256,87 @@ export default function AdminPanelPage() {
             {notice}
           </div>
         )}
+
+        {/* GitHub connection */}
+        <section className="card-surface rounded-2xl p-6 sm:p-8 mb-8">
+          <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+            <h2 className="eyebrow flex items-center gap-2">
+              <Github className="w-4 h-4" />
+              GitHub connection
+            </h2>
+            {token && (
+              <button
+                onClick={() => setShowTokenForm((v) => !v)}
+                className="inline-flex items-center gap-1.5 text-xs text-cream/50 hover:text-gold transition-colors"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                {showTokenForm ? 'Hide token form' : 'Change token'}
+              </button>
+            )}
+          </div>
+
+          {token && !showTokenForm ? (
+            <p className="text-sm text-cream/60 leading-relaxed">
+              Connected to{' '}
+              <span className="text-gold">
+                {GITHUB_OWNER}/{GITHUB_REPO}
+              </span>{' '}
+              on <span className="text-gold">{GITHUB_BRANCH}</span>. Videos are
+              committed to{' '}
+              <code className="text-gold bg-espresso-dark px-1.5 py-0.5 rounded">
+                public/assets/video/custom
+              </code>{' '}
+              and the selection lives in{' '}
+              <code className="text-gold bg-espresso-dark px-1.5 py-0.5 rounded">
+                data/scroll-video.json
+              </code>
+              .
+            </p>
+          ) : (
+            <form onSubmit={saveToken} className="space-y-4">
+              <p className="text-sm text-cream/50 leading-relaxed">
+                Create a personal access token with{' '}
+                <span className="text-cream">Contents: Read &amp; write</span>{' '}
+                access to this repo, then paste it here. It&apos;s stored only in
+                this browser and used to push videos + config to GitHub.
+              </p>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={tokenDraft}
+                  onChange={(e) => setTokenDraft(e.target.value)}
+                  placeholder="ghp_… or github_pat_…"
+                  autoComplete="off"
+                  className="w-full px-4 py-3 pr-12 bg-espresso-dark border border-cream/15 rounded-lg text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                />
+                <KeyRound className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cream/40" />
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <button
+                  type="submit"
+                  disabled={verifying || !tokenDraft.trim()}
+                  className="btn-primary disabled:opacity-60"
+                >
+                  {verifying ? 'Checking…' : token ? 'Save token' : 'Connect'}
+                </button>
+                <a
+                  href="https://github.com/settings/tokens"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-cream/50 hover:text-gold transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Create a token on GitHub
+                </a>
+              </div>
+              {tokenError && (
+                <p role="alert" className="text-sm text-red-400">
+                  {tokenError}
+                </p>
+              )}
+            </form>
+          )}
+        </section>
 
         {/* Current selection */}
         <section className="card-surface rounded-2xl p-6 sm:p-8 mb-8">
@@ -242,8 +358,10 @@ export default function AdminPanelPage() {
                   Desktop
                 </p>
                 <p className="truncate">
-                  {library.find((v) => v.id === selection.desktop)?.name ??
-                    'Default video'}
+                  {config.desktop
+                    ? config.videos.find((v) => v.file === config.desktop)?.name ??
+                      config.desktop
+                    : 'Default video'}
                 </p>
               </div>
             </div>
@@ -254,8 +372,10 @@ export default function AdminPanelPage() {
                   Mobile
                 </p>
                 <p className="truncate">
-                  {library.find((v) => v.id === selection.mobile)?.name ??
-                    'Default video'}
+                  {config.mobile
+                    ? config.videos.find((v) => v.file === config.mobile)?.name ??
+                      config.mobile
+                    : 'Default video'}
                 </p>
               </div>
             </div>
@@ -296,10 +416,12 @@ export default function AdminPanelPage() {
               <UploadCloud className="w-10 h-10 text-gold mx-auto mb-4" />
             )}
             <p className="display text-xl mb-1">
-              {uploading ? 'Saving videos…' : 'Drag &amp; drop videos here'}
+              {uploading ? 'Pushing to GitHub…' : 'Drag &amp; drop videos here'}
             </p>
             <p className="text-sm text-cream/50">
-              or click to browse. MP4, MOV or WebM — big files are fine.
+              or click to browse. MP4, MOV or WebM — big files are fine. Each
+              file is committed to the repo, then set it as the desktop or
+              mobile scroll video below.
             </p>
           </div>
         </section>
@@ -307,26 +429,33 @@ export default function AdminPanelPage() {
         {/* Library */}
         <section>
           <h2 className="eyebrow mb-5">Video library</h2>
-          {library.length === 0 ? (
+          {config.videos.length === 0 ? (
             <p className="text-sm text-cream/40">
-              No custom videos yet. Upload your first one above.
+              No custom videos in the repo yet. Upload your first one above.
             </p>
           ) : (
             <ul className="space-y-4">
-              {library.map((video) => (
+              {config.videos.map((video) => (
                 <li
                   key={video.id}
                   className="card-surface rounded-xl p-3 flex items-center gap-4"
                 >
                   <div className="w-28 h-16 sm:w-36 sm:h-20 rounded-lg overflow-hidden bg-espresso-dark flex-shrink-0">
-                    <VideoPreview id={video.id} />
+                    <video
+                      src={scrollVideoUrl(video.file)}
+                      muted
+                      loop
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium truncate">{video.name}</p>
                       <ScrollStatus
-                        isDesktop={selection.desktop === video.id}
-                        isMobile={selection.mobile === video.id}
+                        isDesktop={config.desktop === video.file}
+                        isMobile={config.mobile === video.file}
                       />
                     </div>
                     <p className="text-xs text-cream/40 mt-0.5">
@@ -335,28 +464,28 @@ export default function AdminPanelPage() {
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-3">
                       <button
-                        onClick={() => assignDesktop(video.id)}
+                        onClick={() => assignDesktop(video.file)}
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors',
-                          selection.desktop === video.id
+                          config.desktop === video.file
                             ? 'border-gold bg-gold/15 text-gold'
                             : 'border-cream/20 text-cream/70 hover:border-gold hover:text-gold'
                         )}
                       >
                         <MonitorPlay className="w-3.5 h-3.5" />
-                        {selection.desktop === video.id ? 'Desktop set' : 'Set desktop'}
+                        {config.desktop === video.file ? 'Desktop set' : 'Set desktop'}
                       </button>
                       <button
-                        onClick={() => assignMobile(video.id)}
+                        onClick={() => assignMobile(video.file)}
                         className={cn(
                           'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors',
-                          selection.mobile === video.id
+                          config.mobile === video.file
                             ? 'border-gold bg-gold/15 text-gold'
                             : 'border-cream/20 text-cream/70 hover:border-gold hover:text-gold'
                         )}
                       >
                         <Smartphone className="w-3.5 h-3.5" />
-                        {selection.mobile === video.id ? 'Mobile set' : 'Set mobile'}
+                        {config.mobile === video.file ? 'Mobile set' : 'Set mobile'}
                       </button>
                       <button
                         onClick={() => remove(video.id)}
@@ -374,8 +503,9 @@ export default function AdminPanelPage() {
         </section>
 
         <div className="mt-12 pt-6 border-t border-cream/10 flex items-center gap-2 text-xs text-cream/40">
-          <Lock className="w-3.5 h-3.5" />
-          Videos are stored locally in this browser — no files leave your device.
+          <Github className="w-3.5 h-3.5" />
+          Videos are committed to {GITHUB_OWNER}/{GITHUB_REPO} ({GITHUB_BRANCH})
+          and served to all visitors — nothing stays in browser storage.
         </div>
       </div>
     </main>

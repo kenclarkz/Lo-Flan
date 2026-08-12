@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
-import { getScrollSelection, getVideoBlob } from '@/lib/admin'
+import { getScrollConfig, scrollVideoUrl } from '@/lib/admin'
 
 const SCRUB_VH = 200
 
@@ -50,6 +50,16 @@ const DESKTOP_SOURCES: Source[] = [
   { src: DESKTOP_H264_SRC, codecs: 'avc1.64001f' },
 ]
 
+// A committed custom video is served from raw.githubusercontent.com (works the
+// moment the push lands) with the deployed copy as the fallback once the site
+// rebuilds and re-exports it into `out/`.
+function customSources(fileName: string): Source[] {
+  return [
+    { src: scrollVideoUrl(fileName), codecs: '' },
+    { src: asset(`/assets/video/custom/${fileName}`), codecs: '' },
+  ]
+}
+
 /**
  * Full-screen video that scrubs with the page scroll.
  *
@@ -85,7 +95,6 @@ export default function ScrollVideo() {
     let desktopSources: Source[] = DESKTOP_SOURCES
     let mobileSources: Source[] = MOBILE_SOURCES
     let usable: Source[] = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
-    const objectUrls: string[] = []
 
     const markReady = () => setReady(true)
     video.addEventListener('loadeddata', markReady)
@@ -150,34 +159,21 @@ export default function ScrollVideo() {
     pickNext()
     unlock()
 
-    // If the admin panel has uploaded a replacement scroll video, prefer it
-    // over the bundled clips. Blob URLs are session-scoped so they are
-    // re-created from IndexedDB on every load.
+    // If the admin panel has committed a replacement scroll video, prefer it
+    // over the bundled clips. The selection and videos live in the GitHub repo
+    // (never in the browser), so the config is fetched fresh and the clips are
+    // served through raw.githubusercontent.com.
     const loadCustom = async () => {
-      const selection = getScrollSelection()
       try {
-        if (selection.desktop) {
-          const blob = await getVideoBlob(selection.desktop)
-          if (blob) {
-            const url = URL.createObjectURL(blob)
-            objectUrls.push(url)
-            desktopSources = [{ src: url, codecs: '' }]
-          }
+        const config = await getScrollConfig()
+        if (config.desktop) {
+          desktopSources = customSources(config.desktop)
+        }
+        if (config.mobile) {
+          mobileSources = customSources(config.mobile)
         }
       } catch {
-        /* keep the bundled desktop clip */
-      }
-      try {
-        if (selection.mobile) {
-          const blob = await getVideoBlob(selection.mobile)
-          if (blob) {
-            const url = URL.createObjectURL(blob)
-            objectUrls.push(url)
-            mobileSources = [{ src: url, codecs: '' }]
-          }
-        }
-      } catch {
-        /* keep the bundled mobile clip */
+        /* keep the bundled clips */
       }
       configure()
     }
@@ -225,7 +221,6 @@ export default function ScrollVideo() {
       cancelAnimationFrame(raf)
       window.clearTimeout(failSafe)
       desktopMq.removeEventListener?.('change', onDesktopChange)
-      objectUrls.forEach((url) => URL.revokeObjectURL(url))
       video.removeEventListener('loadeddata', markReady)
       video.removeEventListener('canplay', markReady)
       video.removeEventListener('error', onVideoError)
