@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
+import { getScrollSelection, getVideoBlob } from '@/lib/admin'
 
 const SCRUB_VH = 200
 
@@ -81,7 +82,10 @@ export default function ScrollVideo() {
     let raf = 0
     let started = false
     let srcIndex = -1
+    let desktopSources: Source[] = DESKTOP_SOURCES
+    let mobileSources: Source[] = MOBILE_SOURCES
     let usable: Source[] = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
+    const objectUrls: string[] = []
 
     const markReady = () => setReady(true)
     video.addEventListener('loadeddata', markReady)
@@ -131,18 +135,53 @@ export default function ScrollVideo() {
     }
 
     // Swap the clip when the viewport crosses the desktop/mobile breakpoint.
-    const onDesktopChange = () => {
-      const next = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
+    const configure = () => {
+      const next = desktopMq.matches ? desktopSources : mobileSources
       if (next === usable) return
       usable = next
       srcIndex = -1
       pickNext()
       unlock()
     }
+
+    const onDesktopChange = configure
     desktopMq.addEventListener?.('change', onDesktopChange)
 
     pickNext()
     unlock()
+
+    // If the admin panel has uploaded a replacement scroll video, prefer it
+    // over the bundled clips. Blob URLs are session-scoped so they are
+    // re-created from IndexedDB on every load.
+    const loadCustom = async () => {
+      const selection = getScrollSelection()
+      try {
+        if (selection.desktop) {
+          const blob = await getVideoBlob(selection.desktop)
+          if (blob) {
+            const url = URL.createObjectURL(blob)
+            objectUrls.push(url)
+            desktopSources = [{ src: url, codecs: '' }]
+          }
+        }
+      } catch {
+        /* keep the bundled desktop clip */
+      }
+      try {
+        if (selection.mobile) {
+          const blob = await getVideoBlob(selection.mobile)
+          if (blob) {
+            const url = URL.createObjectURL(blob)
+            objectUrls.push(url)
+            mobileSources = [{ src: url, codecs: '' }]
+          }
+        }
+      } catch {
+        /* keep the bundled mobile clip */
+      }
+      configure()
+    }
+    loadCustom()
 
     // Never trap the visitor behind the loader (e.g. blocked media, data saver).
     const failSafe = window.setTimeout(markReady, 12000)
@@ -186,6 +225,7 @@ export default function ScrollVideo() {
       cancelAnimationFrame(raf)
       window.clearTimeout(failSafe)
       desktopMq.removeEventListener?.('change', onDesktopChange)
+      objectUrls.forEach((url) => URL.revokeObjectURL(url))
       video.removeEventListener('loadeddata', markReady)
       video.removeEventListener('canplay', markReady)
       video.removeEventListener('error', onVideoError)
