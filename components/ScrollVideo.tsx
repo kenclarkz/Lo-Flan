@@ -6,7 +6,7 @@ import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { getScrollSelection, getVideoBlob } from '@/lib/admin'
 
-const SCRUB_VH = 200
+const SCRUB_VH = 250
 
 // Max the video time may move per frame (≈7x realtime at 60fps). Seeking
 // straight to the scroll target across a whole keyframe gap forces the decoder
