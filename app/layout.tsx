@@ -3,6 +3,7 @@ import './globals.css'
 import { asset, BASE_PATH } from '@/lib/paths'
 import { Footer } from '@/components/Footer'
 import { SmoothScroll } from '@/components/SmoothScroll'
+import { AdminButton } from '@/components/AdminButton'
 
 export const metadata: Metadata = {
   title: {
@@ -47,6 +48,7 @@ export default function RootLayout({
         <div className="grain" aria-hidden />
         {children}
         <Footer />
+        <AdminButton />
       </body>
     </html>
   )

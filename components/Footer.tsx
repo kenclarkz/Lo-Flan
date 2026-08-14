@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, type FormEvent } from 'react'
-import { Mail, MapPin, Phone, Clock, ArrowRight, Instagram, Lock } from 'lucide-react'
+import { Mail, MapPin, Phone, Clock, ArrowRight, Instagram } from 'lucide-react'
 import { asset } from '@/lib/paths'
 import { site } from '@/data/site'
 import { cn } from '@/lib/utils'
@@ -146,14 +146,6 @@ export function Footer() {
             <Link href="/privacy" className="hover:text-gold transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-gold transition-colors">Terms</Link>
             <Link href="/accessibility" className="hover:text-gold transition-colors">Accessibility</Link>
-            <Link
-              href="/admin"
-              className="inline-flex items-center gap-1.5 hover:text-gold transition-colors"
-              aria-label="Admin login"
-            >
-              <Lock className="w-3 h-3" aria-hidden />
-              Admin
-            </Link>
           </div>
         </div>
       </div>
