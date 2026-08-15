@@ -33,6 +33,12 @@
 - `/about` — Brand story, timeline, values, process
 - `/contact` — Contact form, hours, catering & wholesale inquiries
 
+### AI Phone Receptionist (Stage 1)
+- **Twilio Voice + Media Streams** backend in `server/` that answers calls
+  with a Gemini Live (free tier) AI receptionist
+- Never invents prices/menu/availability — falls back to "the owner will follow up"
+- Modular for Stage 2 (menu/prices/order-taking); see [`server/README.md`](server/README.md)
+
 ---
 
 ## 🛠️ Tech Stack
@@ -67,6 +73,24 @@ npx serve out      # preview the exported site (serves /Lo-Flan/...)
 npm run lint
 npm run typecheck
 ```
+
+### AI Phone Receptionist (optional, separate backend)
+
+The phone receptionist lives in its own package under `server/` so it never
+touches the website build:
+
+```bash
+cd server
+npm install
+cp .env.example .env        # add your GEMINI_API_KEY
+npm run dev                 # http://localhost:8080  (+ health check)
+```
+
+Convenience aliases from the repo root: `npm run receptionist:dev`,
+`npm run receptionist:start`, `npm run receptionist:test`.
+
+Full setup, Twilio console steps, and a testing guide:
+**[`server/README.md`](server/README.md)**.
 
 ---
 
@@ -133,6 +157,10 @@ npm run typecheck
 │   ├── oven/                    # Drop oven GLB here
 │   └── sequences/               # PNG sequences / MP4 clips
 ├── BLENDER_GUIDE.md             # Full Blender integration docs
+├── server/                      # AI phone receptionist (Twilio + Gemini Live)
+│   ├── README.md                #   setup, Twilio console config, testing
+│   ├── src/                     #   webhook, Media Streams WS bridge, AI handler
+│   └── test/                    #   node:test suites
 ├── .github/workflows/ci.yml     # GitHub Actions CI
 └── README.md                    # This file
 ```
@@ -269,6 +297,8 @@ CMD ["node", "server.js"]
 | `npm run build` | Static export build (outputs to `out/`) |
 | `npm run lint` | ESLint (Next.js config) |
 | `npm run typecheck` | TypeScript compile check |
+| `npm run receptionist:dev` | Run the AI receptionist backend (server/) |
+| `npm run receptionist:test` | Run the receptionist test suite |
 
 ---
 
