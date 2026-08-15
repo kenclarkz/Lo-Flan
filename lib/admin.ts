@@ -13,6 +13,7 @@ export const ADMIN_PASSWORD = 'qwerty'
 const SESSION_KEY = 'losflan.admin.session'
 const LIBRARY_KEY = 'losflan.admin.library'
 const SCROLL_KEY = 'losflan.admin.scrollVideo'
+const MESSENGER_KEY = 'losflan.admin.messenger'
 
 const DB_NAME = 'losflan-admin'
 const DB_VERSION = 1
@@ -183,6 +184,29 @@ export function getScrollSelection(): ScrollSelection {
 export function setScrollSelection(sel: ScrollSelection) {
   try {
     localStorage.setItem(SCROLL_KEY, JSON.stringify(sel))
+  } catch {
+    /* storage full — nothing we can do from a helper */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Order Now / Messenger link (localStorage)                           */
+/* ------------------------------------------------------------------ */
+
+export function getMessengerLink(): string | null {
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(MESSENGER_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setMessengerLink(link: string) {
+  try {
+    const trimmed = link.trim()
+    if (trimmed) localStorage.setItem(MESSENGER_KEY, trimmed)
+    else localStorage.removeItem(MESSENGER_KEY)
   } catch {
     /* storage full — nothing we can do from a helper */
   }
