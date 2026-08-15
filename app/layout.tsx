@@ -4,6 +4,7 @@ import { asset, BASE_PATH } from '@/lib/paths'
 import { Footer } from '@/components/Footer'
 import { SmoothScroll } from '@/components/SmoothScroll'
 import { AdminButton } from '@/components/AdminButton'
+import { ChatBot } from '@/components/ChatBot'
 
 export const metadata: Metadata = {
   title: {
@@ -48,6 +49,7 @@ export default function RootLayout({
         <div className="grain" aria-hidden />
         {children}
         <Footer />
+        <ChatBot />
         <AdminButton />
       </body>
     </html>

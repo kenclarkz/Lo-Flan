@@ -1,8 +1,24 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { WebSocket, WebSocketServer } from 'ws'
-import { handleMediaStream } from '../src/ws/mediaStream.js'
+import { handleMediaStream, looksLikeOrder } from '../src/ws/mediaStream.js'
+
+const tmpOrdersFile = path.join(os.tmpdir(), `orders-ms-${Date.now()}-${Math.random().toString(36).slice(2)}.json`)
+process.env.ORDERS_FILE = tmpOrdersFile
+
+const { _resetStore, listOrders } = await import('../src/store/orders.js')
+
+after(() => {
+  try {
+    fs.unlinkSync(tmpOrdersFile)
+  } catch {
+    /* already gone */
+  }
+})
 
 const SILENCE_PAYLOAD = Buffer.alloc(160, 0xff).toString('base64')
 
@@ -76,6 +92,10 @@ before(async () => {
 after(() => {
   wss?.close()
   server?.close()
+})
+
+before(() => {
+  _resetStore()
 })
 
 function connectClient() {
@@ -181,4 +201,36 @@ test('bridge closes the AI session on stop', async () => {
   } finally {
     ws.terminate()
   }
+})
+
+test('bridge records a phone call with transcript and flags orders', async () => {
+  const before = listOrders().length
+  const { ws } = await connectClient()
+  try {
+    ws.send(
+      JSON.stringify({
+        event: 'start',
+        start: { streamSid: 'sid6', callSid: 'call6', from: '+18055550146' },
+      }),
+    )
+    const session = await nextSession()
+    session.callbacks.onUserTranscript('Hi, I would like to order two flans')
+    session.callbacks.onAgentTranscript('Great, which flavor would you like?')
+    ws.send(JSON.stringify({ event: 'stop' }))
+    await waitFor(() => listOrders().length === before + 1)
+
+    const record = listOrders()[0]
+    assert.equal(record.source, 'phone')
+    assert.equal(record.callSid, 'call6')
+    assert.equal(record.phone, '+18055550146')
+    assert.match(record.transcript, /I would like to order two flans/)
+    assert.equal(record.isOrder, true)
+  } finally {
+    ws.terminate()
+  }
+})
+
+test('looksLikeOrder detects order intents in transcripts', () => {
+  assert.equal(looksLikeOrder('I want to order a flan'), true)
+  assert.equal(looksLikeOrder('just checking your hours'), false)
 })

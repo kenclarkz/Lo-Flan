@@ -24,9 +24,16 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
   geminiLiveModel: process.env.GEMINI_LIVE_MODEL ?? 'gemini-2.5-flash-live-preview',
   geminiVoice: process.env.GEMINI_VOICE ?? 'Puck',
+  chatModel: process.env.GEMINI_CHAT_MODEL ?? 'gemini-2.5-flash',
 
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? '',
   verifySignatures: toBool(process.env.VERIFY_TWILIO_SIGNATURES, false),
+
+  // Shared secret that guards the admin orders API (X-Admin-Key header).
+  adminApiKey: process.env.ADMIN_API_KEY ?? '',
+
+  // Where recorded orders/calls are persisted (JSON file).
+  ordersFile: process.env.ORDERS_FILE ?? '',
 
   greetingMessage: process.env.GREETING_MESSAGE ?? DEFAULT_GREETING,
   unavailableMessage: process.env.UNAVAILABLE_MESSAGE ?? DEFAULT_UNAVAILABLE,
