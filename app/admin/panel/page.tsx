@@ -6,6 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   Check,
+  LineChart,
   Loader2,
   Lock,
   LogOut,
@@ -221,6 +222,43 @@ export default function AdminPanelPage() {
             {notice}
           </div>
         )}
+
+        {/* Section navigation */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+          <Link
+            href="/admin/panel"
+            className="card-surface rounded-2xl p-5 sm:p-6 group transition-all duration-300 hover:border-gold/40"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10 border border-gold/30">
+                <MonitorPlay className="w-5 h-5 text-gold" />
+              </span>
+              <h2 className="display text-xl">Video library</h2>
+            </div>
+            <p className="text-sm text-cream/50">
+              Swap the homepage scrolling videos. Uploads are saved in this
+              browser.
+            </p>
+          </Link>
+          <Link
+            href="/admin/panel/business"
+            className="card-surface rounded-2xl p-5 sm:p-6 group transition-all duration-300 hover:border-gold/40"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10 border border-gold/30">
+                <LineChart className="w-5 h-5 text-gold" />
+              </span>
+              <h2 className="display text-xl">Business Suite</h2>
+              <span className="rounded-full bg-gold/15 border border-gold/40 px-2.5 py-0.5 text-[0.6rem] uppercase tracking-[0.18em] text-gold">
+                New
+              </span>
+            </div>
+            <p className="text-sm text-cream/50">
+              Ingredients, variations, batch &amp; slice calculators, expenses,
+              profit and a full dashboard.
+            </p>
+          </Link>
+        </div>
 
         {/* Current selection */}
         <section className="card-surface rounded-2xl p-6 sm:p-8 mb-8">
