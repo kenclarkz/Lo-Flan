@@ -6,11 +6,13 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   Check,
+  Facebook,
   Loader2,
   Lock,
   LogOut,
   MonitorPlay,
   RotateCcw,
+  Save,
   Smartphone,
   Trash2,
   UploadCloud,
@@ -19,11 +21,13 @@ import {
   deleteVideo,
   formatBytes,
   getLibrary,
+  getMessengerLink,
   getScrollSelection,
   getVideoBlob,
   isAuthed,
   logout,
   saveVideoBlob,
+  setMessengerLink,
   setScrollSelection,
   type ScrollSelection,
   type VideoMeta,
@@ -97,10 +101,12 @@ export default function AdminPanelPage() {
   const [dragActive, setDragActive] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [notice, setNotice] = useState('')
+  const [messenger, setMessenger] = useState('')
 
   const refresh = useCallback(() => {
     setLibrary(getLibrary())
     setSelection(getScrollSelection())
+    setMessenger(getMessengerLink() ?? '')
   }, [])
 
   useEffect(() => {
@@ -179,6 +185,16 @@ export default function AdminPanelPage() {
     flash('Back to the default videos.')
   }
 
+  const saveMessengerLink = () => {
+    setMessengerLink(messenger)
+    setMessenger(getMessengerLink() ?? '')
+    flash(
+      messenger.trim()
+        ? 'Messenger link updated.'
+        : 'Messenger link cleared — using the default.'
+    )
+  }
+
   const remove = async (id: string) => {
     await deleteVideo(id)
     refresh()
@@ -205,8 +221,9 @@ export default function AdminPanelPage() {
             </Link>
             <h1 className="display text-4xl">Admin Panel</h1>
             <p className="text-sm text-cream/50 mt-1">
-              Manage the scrolling video on the homepage. Changes are saved in
-              this browser and apply instantly on the next page load.
+              Manage the scrolling video and the Order Now button on the
+              homepage. Changes are saved in this browser and apply instantly on
+              the next page load.
             </p>
           </div>
           <button onClick={handleLogout} className="btn-ghost px-5 py-3">
@@ -259,6 +276,32 @@ export default function AdminPanelPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Order Now / Messenger link */}
+        <section className="card-surface rounded-2xl p-6 sm:p-8 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Facebook className="w-5 h-5 text-gold flex-shrink-0" />
+            <h2 className="eyebrow">Order Now — Messenger link</h2>
+          </div>
+          <p className="text-sm text-cream/60 mb-5">
+            Where the big &ldquo;Order Now&rdquo; button on the homepage points.
+            Leave empty to use the default, or paste your Facebook Messenger
+            thread link (e.g. <span className="text-gold">https://m.me/yourpage</span>).
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="url"
+              value={messenger}
+              onChange={(e) => setMessenger(e.target.value)}
+              placeholder="https://m.me/yourpage"
+              className="flex-1 px-4 py-3 bg-espresso-dark border border-cream/15 rounded-lg text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+            />
+            <button onClick={saveMessengerLink} className="btn-primary sm:w-auto">
+              <Save className="w-4 h-4" />
+              Save link
+            </button>
           </div>
         </section>
 

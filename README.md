@@ -18,6 +18,7 @@
 - **Elegant built-in placeholders** with the chapter numeral until real photos are added
 - **Smooth scrolling** via Lenis
 - Scroll-linked text reveals, status/progress overlays, and a final CTA — all driven by scroll position
+- **Big "Order Now" button** pinned over the scrolling video that opens your Facebook Messenger to order — the Messenger link is configurable from the admin control panel (or set in `data/site.ts`)
 - A `components/three/` library (Three.js/R3F) remains available for future 3D scenes
 
 ### Premium Ecommerce (`/products`)
@@ -82,6 +83,7 @@ npm run typecheck
 ├── components/
 │   ├── Experience.tsx           # Scene composition
 │   ├── ScrollController.tsx     # Lenis + GSAP + progress bar
+│   ├── OrderNowButton.tsx       # Fixed Messenger order button (admin-configurable link)
 │   ├── HeroFlan.tsx             # Scene 1
 │   ├── IngredientExplosion.tsx  # Scene 2
 │   ├── BlenderScene.tsx         # Scene 3
