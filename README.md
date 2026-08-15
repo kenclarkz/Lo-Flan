@@ -33,11 +33,17 @@
 - `/about` — Brand story, timeline, values, process
 - `/contact` — Contact form, hours, catering & wholesale inquiries
 
-### AI Phone Receptionist (Stage 1)
+### AI Phone Receptionist + Chatbot + Orders (Stage 2)
 - **Twilio Voice + Media Streams** backend in `server/` that answers calls
   with a Gemini Live (free tier) AI receptionist
-- Never invents prices/menu/availability — falls back to "the owner will follow up"
-- Modular for Stage 2 (menu/prices/order-taking); see [`server/README.md`](server/README.md)
+- **Website chat bot** (`ChatBot` widget) answers questions and takes orders —
+  there's a **"Chat with us"** button right above the big Messenger "Order Now"
+  button on the home screen
+- Real menu prices are business facts now; the receptionist and chat bot can
+  both take orders
+- Every chat order and phone call is recorded and shown in the admin panel
+  under **Orders & Chat** (`/admin/panel/orders`)
+- See [`server/README.md`](server/README.md)
 
 ---
 
@@ -74,20 +80,29 @@ npm run lint
 npm run typecheck
 ```
 
-### AI Phone Receptionist (optional, separate backend)
+### AI Phone Receptionist + Chatbot (optional, separate backend)
 
-The phone receptionist lives in its own package under `server/` so it never
-touches the website build:
+The receptionist and chat bot live in their own package under `server/` so
+they never touch the website build:
 
 ```bash
 cd server
 npm install
-cp .env.example .env        # add your GEMINI_API_KEY
+cp .env.example .env        # add GEMINI_API_KEY + set ADMIN_API_KEY
 npm run dev                 # http://localhost:8080  (+ health check)
 ```
 
 Convenience aliases from the repo root: `npm run receptionist:dev`,
 `npm run receptionist:start`, `npm run receptionist:test`.
+
+### Pointing the website at the backend
+
+The chat bot and the Orders dashboard need to know where the backend lives:
+
+- Set `NEXT_PUBLIC_SERVER_URL=https://your-backend.example` when building
+  (e.g. your ngrok/Railway/Cloud Run URL), **and/or**
+- in the admin panel, **Orders & Chat → Backend connection**, paste the server
+  URL + `ADMIN_API_KEY` (saved per-browser).
 
 Full setup, Twilio console steps, and a testing guide:
 **[`server/README.md`](server/README.md)**.
@@ -108,6 +123,7 @@ Full setup, Twilio console steps, and a testing guide:
 │   ├── Experience.tsx           # Scene composition
 │   ├── ScrollController.tsx     # Lenis + GSAP + progress bar
 │   ├── OrderNowButton.tsx       # Fixed Messenger order button (admin-configurable link)
+│   ├── ChatBot.tsx              # Floating chat bot widget (orders + Q&A)
 │   ├── HeroFlan.tsx             # Scene 1
 │   ├── IngredientExplosion.tsx  # Scene 2
 │   ├── BlenderScene.tsx         # Scene 3
@@ -140,6 +156,8 @@ Full setup, Twilio console steps, and a testing guide:
 │   ├── products.ts              # Product catalog (source of truth)
 │   └── site.ts                  # Site config, nav, chapters
 ├── lib/
+│   ├── admin.ts                 # Admin login/session, video library, messenger link
+│   ├── chat.ts                  # Chat bot + admin orders API helpers (server URL, admin key)
 │   ├── anim.ts                  # GSAP + ScrollTrigger setup
 │   ├── lenis.ts                 # Lenis singleton + integration
 │   ├── usePinnedScene.ts        # ScrollTrigger pin + progress hook
@@ -157,9 +175,9 @@ Full setup, Twilio console steps, and a testing guide:
 │   ├── oven/                    # Drop oven GLB here
 │   └── sequences/               # PNG sequences / MP4 clips
 ├── BLENDER_GUIDE.md             # Full Blender integration docs
-├── server/                      # AI phone receptionist (Twilio + Gemini Live)
+├── server/                      # AI receptionist + chatbot backend (Twilio + Gemini)
 │   ├── README.md                #   setup, Twilio console config, testing
-│   ├── src/                     #   webhook, Media Streams WS bridge, AI handler
+│   ├── src/                     #   webhooks, Media Streams WS bridge, chat, order store
 │   └── test/                    #   node:test suites
 ├── .github/workflows/ci.yml     # GitHub Actions CI
 └── README.md                    # This file

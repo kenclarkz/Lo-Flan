@@ -1,10 +1,34 @@
 import { WebSocket } from 'ws'
 import { createConversationSession } from '../ai/index.js'
 import { createMulawToPcm16, createPcm24kToMulaw8k } from '../utils/audio.js'
+import { addOrder } from '../store/orders.js'
 import logger from '../utils/logger.js'
 
 // ~3 seconds of 20 ms media frames held while the AI session connects.
 const MAX_BUFFERED_MEDIA = 240
+
+// Words that suggest a caller is placing an order, used to flag phone calls
+// in the admin dashboard when no structured extraction is possible from audio.
+const ORDER_KEYWORDS = [
+  'order',
+  'ordering',
+  'buy',
+  'want',
+  "i'd like",
+  'would like',
+  'can i get',
+  'get one',
+  'get two',
+  'get a',
+  'get some',
+  'whole flan',
+  'slices',
+]
+
+export function looksLikeOrder(text) {
+  const lower = String(text ?? '').toLowerCase()
+  return ORDER_KEYWORDS.some((k) => lower.includes(k))
+}
 
 /**
  * Bridge a Twilio Media Stream WebSocket to the AI conversation session.
@@ -14,6 +38,8 @@ const MAX_BUFFERED_MEDIA = 240
  * - Streams the AI's 24 kHz PCM replies back as base64 µ-law `media` events.
  * - Forwards Gemini `interrupted` signals to Twilio as `clear` events so
  *   queued AI speech stops the instant the caller starts talking.
+ * - Records each call (transcript, number, order-likelihood) to the order
+ *   store so the admin dashboard can see receptionist activity.
  *
  * @param {import('ws').WebSocket} ws The Twilio Media Stream connection.
  * @param {{ sessionFactory?: Function }} deps Injectable session factory (tests).
@@ -23,9 +49,12 @@ export function handleMediaStream(ws, deps = {}) {
 
   let streamSid = null
   let callSid = null
+  let callFrom = null
   let session = null
   let ready = false
   let buffered = []
+  let transcript = []
+  let recorded = false
 
   const toPcm16 = createMulawToPcm16()
   const toMulaw8k = createPcm24kToMulaw8k()
@@ -57,7 +86,24 @@ export function handleMediaStream(ws, deps = {}) {
     }
   }
 
+  function recordCall() {
+    if (recorded) return
+    recorded = true
+    const body = transcript.join('\n').trim()
+    if (!body) return
+    const record = addOrder({
+      source: 'phone',
+      phone: callFrom || undefined,
+      callSid: callSid || undefined,
+      transcript: body,
+      customerName: undefined,
+      isOrder: looksLikeOrder(body),
+    })
+    logger.info(`[call ${callSid}] recorded call ${record.id}`)
+  }
+
   function cleanup() {
+    recordCall()
     ready = false
     buffered = []
     if (session) {
@@ -70,15 +116,19 @@ export function handleMediaStream(ws, deps = {}) {
     }
   }
 
-  async function openSession() {
+  async   function openSession() {
     try {
       session = await sessionFactory({
         onAudio: (pcm24k) => sendMedia(toMulaw8k(pcm24k)),
         onInterrupt: () => sendClear(),
-        onUserTranscript: (text) =>
-          logger.info(`[call ${callSid}] caller: ${text}`),
-        onAgentTranscript: (text) =>
-          logger.info(`[call ${callSid}] receptionist: ${text}`),
+        onUserTranscript: (text) => {
+          logger.info(`[call ${callSid}] caller: ${text}`)
+          transcript.push(`Caller: ${text}`)
+        },
+        onAgentTranscript: (text) => {
+          logger.info(`[call ${callSid}] receptionist: ${text}`)
+          transcript.push(`Receptionist: ${text}`)
+        },
         onError: (err) => {
           logger.error(`[call ${callSid}] AI session error`, err?.message ?? err)
           if (isOpen()) ws.close(1011, 'ai_unavailable')
@@ -112,6 +162,7 @@ export function handleMediaStream(ws, deps = {}) {
       case 'start': {
         streamSid = msg.start?.streamSid
         callSid = msg.start?.callSid
+        callFrom = msg.start?.from || msg.start?.caller || null
         logger.info(`[call ${callSid}] media stream started (sid ${streamSid})`)
         openSession()
         break
