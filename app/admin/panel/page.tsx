@@ -69,7 +69,15 @@ function VideoPreview({ id }: { id: string }) {
     )
   }
   return (
-    <video src={url} muted loop playsInline preload="metadata" className="w-full h-full object-cover" />
+    <video
+      src={url}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      onError={() => setError(true)}
+      className="w-full h-full object-cover"
+    />
   )
 }
 
@@ -128,9 +136,13 @@ export default function AdminPanelPage() {
     setUploading(true)
     const first = videos[0]
     const saved: VideoMeta[] = []
+    const unplayable: string[] = []
     try {
       for (const file of videos) {
         saved.push(await saveVideoBlob(file))
+        const type = file.type || 'video/mp4'
+        const probe = document.createElement('video')
+        if (type && probe.canPlayType(type) === '') unplayable.push(file.name)
       }
     } catch {
       flash('Could not save video — the file may be too large for this browser.')
@@ -144,11 +156,21 @@ export default function AdminPanelPage() {
       setScrollSelection(sel)
     }
     refresh()
-    flash(
-      saved.length > 0
-        ? `${saved.length === 1 ? 'Video' : `${saved.length} videos`} saved. Head back to the homepage and scroll to see it.`
-        : 'No videos were saved.'
-    )
+    if (saved.length > 0 && unplayable.length > 0) {
+      flash(
+        `${unplayable.length === 1 ? 'Video' : 'Videos'} saved but ${
+          unplayable.length === 1 ? 'is' : 'are'
+        } in a format this browser can't play (${
+          unplayable.length === 1 ? unplayable[0] : unplayable.join(', ')
+        }). It won't show on the homepage — use MP4 (H.264) or WebM.`
+      )
+    } else {
+      flash(
+        saved.length > 0
+          ? `${saved.length === 1 ? 'Video' : `${saved.length} videos`} saved. Head back to the homepage and scroll to see it.`
+          : 'No videos were saved.'
+      )
+    }
   }
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {

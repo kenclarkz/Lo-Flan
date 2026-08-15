@@ -82,8 +82,10 @@ export default function ScrollVideo() {
     let raf = 0
     let started = false
     let srcIndex = -1
-    let desktopSources: Source[] = DESKTOP_SOURCES
-    let mobileSources: Source[] = MOBILE_SOURCES
+    // Admin-uploaded replacements (blob URLs), when present. Tried before the
+    // bundled clips so a bad/corrupt upload falls back instead of blacking out.
+    let customDesktop: Source[] | null = null
+    let customMobile: Source[] | null = null
     let usable: Source[] = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
     const objectUrls: string[] = []
 
@@ -114,7 +116,19 @@ export default function ScrollVideo() {
       }
       // No candidate advertises support — attempt the next one anyway so the
       // browser has a chance to load it before we give up on the loader.
-      return tryCandidate(srcIndex + 1)
+      if (tryCandidate(srcIndex + 1)) return true
+      // Custom blob exhausted (unplayable upload) — drop back to the bundled
+      // clips so the homepage always shows a working video.
+      const defaults = desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES
+      if (usable !== defaults) {
+        usable = defaults
+        srcIndex = -1
+        for (let i = 0; i < usable.length; i++) {
+          if (probe(usable[i])) return tryCandidate(i)
+        }
+        return tryCandidate(0)
+      }
+      return false
     }
 
     const onVideoError = () => {
@@ -134,12 +148,24 @@ export default function ScrollVideo() {
       }
     }
 
-    // Swap the clip when the viewport crosses the desktop/mobile breakpoint.
+    // Custom blob first, bundled clips as a safety net. Re-evaluated whenever
+    // an upload becomes available or the viewport crosses the breakpoint.
+    const candidates = () => [
+      ...(desktopMq.matches ? customDesktop : customMobile) ?? [],
+      ...(desktopMq.matches ? DESKTOP_SOURCES : MOBILE_SOURCES),
+    ]
+
     const configure = () => {
-      const next = desktopMq.matches ? desktopSources : mobileSources
-      if (next === usable) return
+      const next = candidates()
+      const same =
+        next.length === usable.length &&
+        next.every((s, i) => s.src === usable[i].src)
+      if (same) return
       usable = next
       srcIndex = -1
+      // The source is changing, so the previous frame is gone — bring the
+      // loader back until the new clip is decodable instead of flashing black.
+      setReady(false)
       pickNext()
       unlock()
     }
@@ -155,27 +181,25 @@ export default function ScrollVideo() {
     // re-created from IndexedDB on every load.
     const loadCustom = async () => {
       const selection = getScrollSelection()
+      const pickCustom = async (id?: string, custom: Source[] | null = null): Promise<Source[] | null> => {
+        if (!id) return custom
+        const blob = await getVideoBlob(id)
+        if (!blob) return custom
+        // Skip uploads this browser clearly can't decode (e.g. an iPhone HEVC
+        // clip on a browser without HEVC support) rather than blacking out.
+        const type = blob.type || 'video/mp4'
+        if (type && document.createElement('video').canPlayType(type) === '') return custom
+        const url = URL.createObjectURL(blob)
+        objectUrls.push(url)
+        return [{ src: url, codecs: '' }]
+      }
       try {
-        if (selection.desktop) {
-          const blob = await getVideoBlob(selection.desktop)
-          if (blob) {
-            const url = URL.createObjectURL(blob)
-            objectUrls.push(url)
-            desktopSources = [{ src: url, codecs: '' }]
-          }
-        }
+        customDesktop = await pickCustom(selection.desktop)
       } catch {
         /* keep the bundled desktop clip */
       }
       try {
-        if (selection.mobile) {
-          const blob = await getVideoBlob(selection.mobile)
-          if (blob) {
-            const url = URL.createObjectURL(blob)
-            objectUrls.push(url)
-            mobileSources = [{ src: url, codecs: '' }]
-          }
-        }
+        customMobile = await pickCustom(selection.mobile, customMobile)
       } catch {
         /* keep the bundled mobile clip */
       }
