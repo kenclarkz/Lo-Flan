@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import {
   business,
   buildSystemInstruction,
-  buildChatSystemInstruction,
   formatHours,
 } from '../src/knowledge/business.js'
 
@@ -35,20 +34,4 @@ test('buildSystemInstruction accepts a custom business override', () => {
     business: { ...business, name: 'Test Shop', hours: business.hours },
   })
   assert.match(prompt, /Test Shop/)
-})
-
-test('buildChatSystemInstruction asks for JSON replies and the menu', () => {
-  const prompt = buildChatSystemInstruction()
-  assert.match(prompt, /Respond ONLY in valid JSON/)
-  assert.match(prompt, /"reply"/)
-  assert.match(prompt, /"order"/)
-  assert.match(prompt, /Classic Original Flan/)
-  assert.match(prompt, /collect the flavor/)
-})
-
-test('buildChatSystemInstruction notes when an order was already placed', () => {
-  const prompt = buildChatSystemInstruction({ orderPlaced: true })
-  assert.match(prompt, /An order has already been placed/)
-  const fresh = buildChatSystemInstruction()
-  assert.doesNotMatch(fresh, /An order has already been placed/)
 })

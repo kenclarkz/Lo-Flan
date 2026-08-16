@@ -24,7 +24,6 @@ export const config = {
   geminiApiKey: process.env.GEMINI_API_KEY ?? '',
   geminiLiveModel: process.env.GEMINI_LIVE_MODEL ?? 'gemini-2.5-flash-live-preview',
   geminiVoice: process.env.GEMINI_VOICE ?? 'Puck',
-  chatModel: process.env.GEMINI_CHAT_MODEL ?? 'gemini-2.5-flash',
 
   twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ?? '',
   verifySignatures: toBool(process.env.VERIFY_TWILIO_SIGNATURES, false),

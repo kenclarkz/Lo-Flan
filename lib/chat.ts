@@ -1,9 +1,10 @@
 /**
- * Client helpers for the Lo-Flan chat bot and the admin Orders dashboard.
+ * Client helpers for the Lo-Flan admin Orders dashboard.
  *
- * The website is a static export, so the chat bot and the orders dashboard
- * talk to the small Node backend (`server/`) that also runs the phone
- * receptionist. The server URL can be baked in at build time via
+ * The website chat bot is fully built-in (see `lib/chatbot.ts` and
+ * `data/chatbot.ts`) and does not need a server. The admin orders dashboard,
+ * however, talks to the small Node backend (`server/`) that also runs the
+ * phone receptionist. The server URL can be baked in at build time via
  * `NEXT_PUBLIC_SERVER_URL` and overridden per-browser from the admin panel.
  */
 
@@ -50,31 +51,6 @@ export function setAdminKey(key: string) {
   } catch {
     /* storage unavailable */
   }
-}
-
-/* ------------------------------------------------------------------ */
-/* Chat bot                                                            */
-/* ------------------------------------------------------------------ */
-
-export interface ChatReply {
-  reply: string
-  conversationId?: string
-  orderId?: string | null
-}
-
-export async function sendChatMessage(
-  message: string,
-  conversationId?: string
-): Promise<ChatReply> {
-  const serverUrl = getServerUrl()
-  if (!serverUrl) throw new Error('no_server_url')
-  const res = await fetch(`${serverUrl}/api/chat`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ message, conversationId }),
-  })
-  if (!res.ok) throw new Error(`chat_http_${res.status}`)
-  return (await res.json()) as ChatReply
 }
 
 /* ------------------------------------------------------------------ */

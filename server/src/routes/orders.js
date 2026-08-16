@@ -1,23 +1,24 @@
 import { Router } from 'express'
 import { config } from '../config.js'
-import { chatReply } from '../ai/chat.js'
 import { listOrders, clearOrders, updateOrderStatus, deleteOrder } from '../store/orders.js'
 import logger from '../utils/logger.js'
 
 /**
- * Website chatbot + admin orders API.
+ * Admin orders API.
  *
- * - POST /api/chat            — public; one chatbot turn.
  * - GET  /api/orders          — admin; list all recorded orders/calls.
  * - POST /api/orders/clear    — admin; wipe the store.
  * - POST /api/orders/:id/status — admin; update an order's status.
  * - DELETE /api/orders/:id    — admin; remove a single record.
  *
+ * The website chat bot is fully built-in now (see `lib/chatbot.ts`), so there
+ * is no `/api/chat` endpoint anymore. Orders here come from phone calls taken
+ * by the AI receptionist.
+ *
  * Admin endpoints require `X-Admin-Key: <ADMIN_API_KEY>` (or ?adminKey=).
  */
-export function createChatRouter(deps = {}) {
+export function createOrdersRouter() {
   const router = Router()
-  const chat = deps.chat ?? chatReply
 
   function isAdmin(req) {
     const key = req.get('x-admin-key') || String(req.query.adminKey || '')
@@ -29,24 +30,6 @@ export function createChatRouter(deps = {}) {
     res.status(401).json({ error: 'unauthorized' })
     return false
   }
-
-  router.post('/chat', async (req, res) => {
-    const { message, conversationId } = req.body ?? {}
-    if (typeof message !== 'string' || message.trim() === '') {
-      return res.status(400).json({ error: 'message_required' })
-    }
-    if (!config.geminiApiKey) {
-      logger.warn('GEMINI_API_KEY missing — chat unavailable')
-      return res.status(503).json({ error: 'chat_unavailable' })
-    }
-    try {
-      const result = await chat(message.trim(), typeof conversationId === 'string' ? conversationId : undefined)
-      return res.json(result)
-    } catch (err) {
-      logger.error('chat request failed', err?.message ?? err)
-      return res.status(500).json({ error: 'chat_unavailable' })
-    }
-  })
 
   router.get('/orders', (_req, res) => {
     if (!requireAdmin(_req, res)) return

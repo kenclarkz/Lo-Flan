@@ -169,8 +169,9 @@ export default function OrdersDashboardPage() {
             </Link>
             <h1 className="display text-4xl">Orders &amp; Chat</h1>
             <p className="text-sm text-cream/50 mt-1 max-w-2xl">
-              Incoming orders captured by the website chat bot and calls taken
-              by the AI receptionist, pulled live from the Lo-Flan backend.
+              Calls and orders taken by the AI phone receptionist, pulled live
+              from the Lo-Flan backend. (The website chat assistant is built-in
+              and no longer sends orders here.)
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -236,7 +237,7 @@ export default function OrdersDashboardPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard label="Total records" value={stats.total} sub="Chat + phone" />
-          <StatCard label="Chat orders" value={stats.chat} accent="positive" sub="From the website chat bot" />
+          <StatCard label="Chat records" value={stats.chat} accent="positive" sub="From the website chat bot (historical)" />
           <StatCard label="Phone calls" value={stats.phone} sub="From the AI receptionist" />
           <StatCard label="New orders" value={stats.needsAttention} accent="negative" sub="Awaiting your follow-up" />
         </div>

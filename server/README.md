@@ -1,11 +1,15 @@
-# Lo-Flan AI Phone Receptionist + Chatbot + Orders (Stage 2)
+# Lo-Flan AI Phone Receptionist + Admin Orders (Stage 2)
 
 A backend that answers your Twilio phone number with an AI receptionist that
-talks to callers about **Lo's Flan**, and powers the website **chat bot** that
-answers questions and takes orders. It uses **Twilio Voice + Media Streams**
-for the phone audio and Google's **Gemini** for conversation (Live audio on
-the phone, text on the chat bot). Every order or call is recorded and exposed
-to the admin dashboard.
+talks to callers about **Lo's Flan**. It uses **Twilio Voice + Media Streams**
+for the phone audio and Google's **Gemini Live** for conversation. Every call
+is recorded and exposed to the admin dashboard's **Orders & Chat** page
+(`GET /api/orders`, protected by `ADMIN_API_KEY`).
+
+> The website **chat bot** is now fully built-in and runs entirely in the
+> browser against a local knowledge base (`data/chatbot.ts` + `lib/chatbot.ts`).
+> It needs no API key, no AI service, and no connection to this backend. The
+> admin orders API below is used by the admin dashboard only.
 
 ```
 Caller ──► Twilio ──► POST /twilio/incoming (returns TwiML)
@@ -17,13 +21,11 @@ Caller ──► Twilio ──► POST /twilio/incoming (returns TwiML)
                                    │
                           Gemini Live (16 kHz PCM in / 24 kHz PCM out)
 
-Visitor ──► POST /api/chat ──► Gemini text ──► JSON reply + order
-                          └── order recorded → GET /api/orders (admin)
+Call record ──► store/orders.js ──► GET /api/orders (admin dashboard)
 ```
 
 - The phone AI takes orders (menu/prices are real facts now) and records each
-  call's transcript. The website chat bot answers questions and records
-  structured orders. Both land in the same orders store and are surfaced by
+  call's transcript. Records land in the order store and are surfaced by
   `GET /api/orders` (protected by `ADMIN_API_KEY`) for the admin dashboard.
 
 ---
@@ -55,7 +57,6 @@ cp .env.example .env
 | `GEMINI_API_KEY` | **yes** | Free key from https://aistudio.google.com/apikey |
 | `GEMINI_LIVE_MODEL` | no | Live model (default `gemini-2.5-flash-live-preview`) |
 | `GEMINI_VOICE` | no | Gemini voice (default `Puck`) |
-| `GEMINI_CHAT_MODEL` | no | Text model for the website chat bot (default `gemini-2.5-flash`) |
 | `ADMIN_API_KEY` | **recommended** | Shared secret guarding `GET /api/orders` + friends. The admin dashboard sends it as the `X-Admin-Key` header. Leave empty to disable the admin endpoints. |
 | `ORDERS_FILE` | no | JSON file where orders/calls persist (default `./data/orders.json`) |
 | `TWILIO_AUTH_TOKEN` | no | Enables webhook signature verification (see below) |
@@ -154,7 +155,6 @@ Server logs show the streamed conversation:
 | `POST` | `/twilio/incoming` | Twilio Voice webhook → returns TwiML |
 | `POST` | `/twilio/status` | Optional call-status callback |
 | `WS` | `/media-stream` | Twilio Media Streams bidirectional audio |
-| `POST` | `/api/chat` | Website chat bot — one turn: `{ message, conversationId? }` → `{ reply, conversationId, orderId? }` |
 | `GET` | `/api/orders` | Admin — list recorded orders/calls (`X-Admin-Key` header) |
 | `POST` | `/api/orders/:id/status` | Admin — set an order's status (`{ status }`) |
 | `DELETE` | `/api/orders/:id` | Admin — remove a single record |
@@ -162,14 +162,6 @@ Server logs show the streamed conversation:
 
 Admin endpoints respond `401` unless the request carries
 `X-Admin-Key: <ADMIN_API_KEY>` (or `?adminKey=...`).
-
-Example chat call:
-
-```bash
-curl -X POST http://localhost:8080/api/chat \
-  -H 'content-type: application/json' \
-  -d '{"message": "I would like to order a chocolate flan"}'
-```
 
 Example admin fetch:
 
@@ -215,14 +207,13 @@ server/
 │   ├── app.js               # Express app, health check, error handling
 │   ├── config.js            # env parsing + validation
 │   ├── routes/twilio.js     # /twilio/incoming + /twilio/status webhooks
-│   ├── routes/chat.js       # /api/chat (bot) + /api/orders (admin)
+│   ├── routes/orders.js     # /api/orders (admin)
 │   ├── store/orders.js      # order/call store (JSON file persistence)
 │   ├── ws/mediaStream.js    # Twilio Media Streams <-> AI bridge + call logging
 │   ├── ai/
 │   │   ├── index.js         # conversation-session factory (provider switch)
-│   │   ├── geminiLive.js    # Gemini Live provider (STT + LLM + TTS in one)
-│   │   └── chat.js          # website chat bot (Gemini text + order parsing)
-│   ├── knowledge/business.js# business facts, menu + system prompts
+│   │   └── geminiLive.js    # Gemini Live provider (STT + LLM + TTS in one)
+│   ├── knowledge/business.js# business facts, menu + phone system prompt
 │   └── utils/
 │       ├── audio.js         # µ-law <-> PCM, linear resampler
 │       ├── twiml.js         # TwiML builders
@@ -235,10 +226,11 @@ server/
 ### Order-taking
 - **Phone calls**: `ws/mediaStream.js` accumulates the live transcript and
   records each call (number, transcript, order-likelihood) when it ends.
-- **Chat bot**: `ai/chat.js` asks Gemini to reply in strict JSON. When the
-  JSON contains a completed `order`, `store/orders.js` records it.
-- **Dashboard**: the admin panel reads `GET /api/orders` and shows both
-  sources side by side.
+- **Website chat bot**: fully built-in and local — `lib/chatbot.ts` +
+  `data/chatbot.ts` in the website package answer questions with intent
+  matching. It never talks to this backend and does not record orders here.
+- **Dashboard**: the admin panel reads `GET /api/orders` and shows the call
+  records (and any chat orders the store may still hold) from this backend.
 
 ### Stage 3 notes
 - **Live availability**: add function-calling / grounding so the bot and
