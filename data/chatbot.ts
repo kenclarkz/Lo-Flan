@@ -82,24 +82,42 @@ export const products: ProductInfo[] = menu.map((product) => ({
   name: product.name,
   price: product.price,
   description: product.description,
-  size: 'Whole flan · serves about 8',
+  size: sizeFor(product.id),
   ingredients: baseIngredientsFor(product.id),
   allergens: baseAllergensFor(product.id),
   keywords: productKeywordsFor(product.id),
 }))
 
-// Ingredients, allergens and keywords are kept here so they stay easy to edit.
-// They are intentionally conservative — grounded in the menu descriptions —
-// and can be refined by the owner without touching any code.
+// Ingredients, allergens, sizes and keywords are kept here so they stay easy
+// to edit. They are intentionally conservative — grounded in the menu
+// descriptions — and can be refined by the owner without touching any code.
+
+function sizeFor(id: string): string {
+  switch (id) {
+    case 'original-slice':
+    case 'cheese-slice':
+    case 'coconut-slice':
+      return 'Single slice'
+    case 'choco-mini':
+      return 'Personal mini flan'
+    default:
+      return 'Whole flan · serves about 8'
+  }
+}
 
 function baseIngredientsFor(id: string): string[] {
   const base = ['milk', 'cream', 'eggs', 'sugar', 'caramel']
   switch (id) {
     case 'coconut':
+    case 'coconut-slice':
       return [...base, 'coconut']
     case 'chocoflan':
+    case 'choco-mini':
       return [...base, 'chocolate', 'cocoa']
+    case 'cheese-slice':
+      return [...base, 'cream cheese']
     case 'vanilla':
+    case 'original-slice':
     default:
       return [...base, 'Tahitian vanilla bean']
   }
@@ -107,7 +125,8 @@ function baseIngredientsFor(id: string): string[] {
 
 function baseAllergensFor(id: string): string[] {
   const base = ['milk', 'cream', 'eggs']
-  if (id === 'coconut') return [...base, 'coconut']
+  if (id === 'coconut' || id === 'coconut-slice') return [...base, 'coconut']
+  if (id === 'cheese-slice') return [...base, 'cream cheese']
   return base
 }
 
@@ -115,11 +134,18 @@ function productKeywordsFor(id: string): string[] {
   switch (id) {
     case 'coconut':
       return ['coconut', 'coco', 'tropical']
+    case 'coconut-slice':
+      return ['coconut', 'coco', 'tropical', 'slice', 'slices', 'single slice']
     case 'chocoflan':
       return ['chocolate', 'choco', 'chocoflan', 'chocolate flan', 'cocoa', 'dark']
+    case 'choco-mini':
+      return ['chocolate', 'choco', 'mini', 'personal', 'single', 'small', 'little']
+    case 'cheese-slice':
+      return ['cheese', 'cheesecake', 'cream cheese', 'slice', 'slices', 'single slice']
     case 'vanilla':
+    case 'original-slice':
     default:
-      return ['vanilla', 'classic', 'original', 'tahitian', 'custard']
+      return ['vanilla', 'classic', 'original', 'tahitian', 'custard', 'slice', 'slices', 'single slice']
   }
 }
 
@@ -416,7 +442,10 @@ export const topics: TopicIntent[] = [
       'how many people',
       'feed a crowd',
     ],
-    answer: `Our ${products.map((p) => p.name).join(', ')} are each sold as a whole flan (serves about 8). For slices or larger quantities, ask us when you order and the owner will confirm what's available.`,
+    answer: `Our whole flans (${products
+      .filter((p) => p.size.startsWith('Whole'))
+      .map((p) => p.name)
+      .join(', ')}) each serve about 8. We also sell slices of our original and coconut flans, plus a mini personal choco flan. For larger quantities, ask us when you order and the owner will confirm what's available.`,
   },
   {
     id: 'catering',
@@ -606,7 +635,7 @@ export const faqs: FaqEntry[] = [
     question: 'Can I order slices?',
     keywords: ['slice', 'slices', 'single slice', 'individual'],
     answer:
-      'We sell whole flans (each serves about 8). For slices or smaller portions, mention it when you order and the owner will confirm what we can do.',
+      'Yes! We sell single slices of our original and coconut flans, plus a mini personal choco flan. Check our menu page for the full selection.',
   },
 ]
 

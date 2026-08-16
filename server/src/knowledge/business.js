@@ -27,22 +27,41 @@ export const business = {
       name: 'Classic Original Flan',
       price: 20,
       slices: 8,
-      slicePrice: 3.5,
       description: 'Silky caramel flan made from fresh milk, eggs and vanilla.',
     },
     {
       name: 'Chocolate Flan',
       price: 26,
       slices: 8,
-      slicePrice: 4.5,
       description: 'Rich dark chocolate folded into the classic custard.',
     },
     {
       name: 'Oreo Flan',
       price: 28,
       slices: 8,
-      slicePrice: 5,
       description: 'Cookie crumble mixed into the classic custard.',
+    },
+  ],
+  slices: [
+    {
+      name: 'Original Slice',
+      price: 5,
+      description: 'A single slice of our classic vanilla flan.',
+    },
+    {
+      name: 'Cheese Slice',
+      price: 6,
+      description: 'A creamy slice of cheesecake-style flan.',
+    },
+    {
+      name: 'Coconut Slice',
+      price: 6,
+      description: 'A single slice of velvety coconut flan.',
+    },
+    {
+      name: 'Flan Choco Mini Personal',
+      price: 8,
+      description: 'A personal mini chocolate flan.',
     },
   ],
   ordering: {
@@ -87,7 +106,11 @@ export function buildSystemInstruction(overrides = {}) {
 
   const menuLines = biz.menu.map(
     (m) =>
-      `- ${m.name}: $${m.price} for a whole flan (${m.slices} slices) or $${m.slicePrice} per slice. ${m.description}`
+      `- ${m.name}: $${m.price} for a whole flan (${m.slices} slices). ${m.description}`
+  )
+
+  const sliceLines = (biz.slices ?? []).map(
+    (s) => `- ${s.name}: $${s.price}. ${s.description}`
   )
 
   return [
@@ -100,6 +123,7 @@ export function buildSystemInstruction(overrides = {}) {
     '',
     'Menu and prices:',
     ...menuLines,
+    ...sliceLines,
     '',
     'Rules:',
     '- Answer questions using ONLY the facts above.',
