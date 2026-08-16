@@ -99,7 +99,7 @@ export default function OrdersDashboardPage() {
       const url = getServerUrl()
       const key = getAdminKey()
       if (!url || !key) {
-        setError('Enter the backend server URL and admin key above to load orders.')
+        setError('Enter the admin key above to load orders. The server URL is optional when the backend is on the same domain.')
         return
       }
       if (showSpinner) setLoading(true)
@@ -209,7 +209,7 @@ export default function OrdersDashboardPage() {
         <SectionCard className="mb-6">
           <h3 className="eyebrow mb-4">Backend connection</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <Field label="Server URL" hint="Where the Lo-Flan backend lives, e.g. https://abc123.ngrok-free.app">
+            <Field label="Server URL" hint="Optional. Leave blank to use same-origin /api/orders. Set only for a cross-origin backend.">
               <TextInput
                 type="url"
                 value={serverUrl}
@@ -247,7 +247,7 @@ export default function OrdersDashboardPage() {
 
         {!loaded && !loading && orders.length === 0 && (
           <p className="text-sm text-cream/40">
-            No records loaded yet. Save the connection above, then press &ldquo;Load orders&rdquo;.
+            No records loaded yet. Enter the admin key above and press &ldquo;Load orders&rdquo;. The server URL is optional when the backend is on the same domain.
           </p>
         )}
 
