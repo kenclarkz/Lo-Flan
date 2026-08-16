@@ -29,6 +29,14 @@ test('buildSystemInstruction includes the menu so the phone AI can take orders',
   assert.match(prompt, /collect the flavor, quantity/)
 })
 
+test('buildSystemInstruction includes the slice menu with prices', () => {
+  const prompt = buildSystemInstruction()
+  assert.match(prompt, /Original Slice: \$5/)
+  assert.match(prompt, /Cheese Slice: \$6/)
+  assert.match(prompt, /Coconut Slice: \$6/)
+  assert.match(prompt, /Flan Choco Mini Personal: \$8/)
+})
+
 test('buildSystemInstruction accepts a custom business override', () => {
   const prompt = buildSystemInstruction({
     business: { ...business, name: 'Test Shop', hours: business.hours },
