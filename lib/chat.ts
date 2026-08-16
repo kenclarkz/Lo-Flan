@@ -2,10 +2,13 @@
  * Client helpers for the Lo-Flan admin Orders dashboard.
  *
  * The website chat bot is fully built-in (see `lib/chatbot.ts` and
- * `data/chatbot.ts`) and does not need a server. The admin orders dashboard,
- * however, talks to the small Node backend (`server/`) that also runs the
- * phone receptionist. The server URL can be baked in at build time via
- * `NEXT_PUBLIC_SERVER_URL` and overridden per-browser from the admin panel.
+ * `data/chatbot.ts`) and does not need a server. Chat order submission,
+ * however, POSTs to `/api/orders` on the same origin by default — no
+ * configuration is needed when the backend is hosted on the same domain.
+ *
+ * To point at a cross-origin backend, set `NEXT_PUBLIC_SERVER_URL` at
+ * build time or override it per-browser from the admin panel's "Backend
+ * connection" section. Both are optional.
  */
 
 export const SERVER_URL_KEY = 'losflan.admin.serverUrl'
@@ -15,6 +18,14 @@ function envServerUrl(): string {
   return (process.env.NEXT_PUBLIC_SERVER_URL ?? '').replace(/\/+$/, '')
 }
 
+/**
+ * Returns the backend base URL for the orders API.
+ *
+ * When nothing is configured the string is empty — callers should treat
+ * this as "same origin" and POST to `/api/orders` directly (relative URL).
+ * Set `NEXT_PUBLIC_SERVER_URL` or use the admin panel to override for
+ * cross-origin backends.
+ */
 export function getServerUrl(): string {
   if (typeof window === 'undefined') return envServerUrl()
   try {
@@ -149,6 +160,7 @@ export async function submitChatOrder(
   serverUrl: string,
   order: ChatOrderSubmission
 ): Promise<Order> {
+  // When serverUrl is empty this resolves to /api/orders (same-origin).
   const url = `${serverUrl}/api/orders`
   console.log(`[order] POST ${url}`, order)
   const res = await fetch(url, {

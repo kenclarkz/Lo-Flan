@@ -96,15 +96,17 @@ npm run dev                 # http://localhost:8080  (+ health check)
 Convenience aliases from the repo root: `npm run receptionist:dev`,
 `npm run receptionist:start`, `npm run receptionist:test`.
 
-### Pointing the Orders dashboard at the backend
+### Chat order submission
 
-Only the admin **Orders & Chat** dashboard needs to know where the backend
-lives (to list recorded phone calls):
+Orders placed through the website chatbot POST to `/api/orders` on the
+same origin automatically — no configuration needed when the backend is
+hosted on the same domain. To point at a cross-origin backend:
 
 - Set `NEXT_PUBLIC_SERVER_URL=https://your-backend.example` when building
   (e.g. your ngrok/Railway/Cloud Run URL), **and/or**
-- in the admin panel, **Orders & Chat → Backend connection**, paste the server
-  URL + `ADMIN_API_KEY` (saved per-browser).
+- in the admin panel, **Orders & Chat → Backend connection**, paste the
+  server URL + `ADMIN_API_KEY` (saved per-browser). Both fields are
+  optional overrides.
 
 Full setup, Twilio console steps, and a testing guide:
 **[`server/README.md`](server/README.md)**.
