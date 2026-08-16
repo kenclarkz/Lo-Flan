@@ -149,13 +149,20 @@ export async function submitChatOrder(
   serverUrl: string,
   order: ChatOrderSubmission
 ): Promise<Order> {
-  const res = await fetch(`${serverUrl}/api/orders`, {
+  const url = `${serverUrl}/api/orders`
+  console.log(`[order] POST ${url}`, order)
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(order),
   })
-  if (!res.ok) throw new Error(`order_submit_${res.status}`)
-  const body = (await res.json()) as { order?: Order }
-  if (!body.order) throw new Error('order_submit_empty')
+  const bodyText = await res.text()
+  console.log(`[order] response ${res.status}`, bodyText)
+  if (!res.ok) {
+    const detail = bodyText.slice(0, 200)
+    throw new Error(`order_submit_${res.status}: ${detail}`)
+  }
+  const body = JSON.parse(bodyText) as { order?: Order }
+  if (!body.order) throw new Error('order_submit_empty_response')
   return body.order
 }
