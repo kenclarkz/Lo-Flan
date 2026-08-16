@@ -30,6 +30,7 @@ import { Button, Field, SectionCard, StatCard, TextInput } from '@/components/bu
 import { cn } from '@/lib/utils'
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
+  pending: 'border-amber-400/50 text-amber-300',
   new: 'border-gold/50 text-gold',
   confirmed: 'border-sage/50 text-sage',
   fulfilled: 'border-cream/30 text-cream/70',
@@ -147,7 +148,8 @@ export default function OrdersDashboardPage() {
     total: orders.length,
     chat: orders.filter((o) => o.source === 'chat').length,
     phone: orders.filter((o) => o.source === 'phone').length,
-    needsAttention: orders.filter((o) => o.status === 'new' && (o.source === 'chat' || o.isOrder)).length,
+    pending: orders.filter((o) => o.status === 'pending').length,
+    needsAttention: orders.filter((o) => (o.status === 'new' || o.status === 'pending') && (o.source === 'chat' || o.isOrder)).length,
   }
 
   const handleLogout = () => {
@@ -169,9 +171,9 @@ export default function OrdersDashboardPage() {
             </Link>
             <h1 className="display text-4xl">Orders &amp; Chat</h1>
             <p className="text-sm text-cream/50 mt-1 max-w-2xl">
-              Calls and orders taken by the AI phone receptionist, pulled live
-              from the Lo-Flan backend. (The website chat assistant is built-in
-              and no longer sends orders here.)
+              Orders from the website chatbot and calls taken by the AI phone
+              receptionist, pulled live from the Lo-Flan backend. Approve or deny
+              pending orders below.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -235,11 +237,12 @@ export default function OrdersDashboardPage() {
           </div>
         </SectionCard>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           <StatCard label="Total records" value={stats.total} sub="Chat + phone" />
-          <StatCard label="Chat records" value={stats.chat} accent="positive" sub="From the website chat bot (historical)" />
+          <StatCard label="Chat orders" value={stats.chat} accent="positive" sub="From the website chatbot" />
           <StatCard label="Phone calls" value={stats.phone} sub="From the AI receptionist" />
-          <StatCard label="New orders" value={stats.needsAttention} accent="negative" sub="Awaiting your follow-up" />
+          <StatCard label="Pending" value={stats.pending} accent="negative" sub="Awaiting approval" />
+          <StatCard label="Needs attention" value={stats.needsAttention} accent="negative" sub="Pending + new orders" />
         </div>
 
         {!loaded && !loading && orders.length === 0 && (
@@ -257,8 +260,8 @@ export default function OrdersDashboardPage() {
 
         {loaded && orders.length === 0 && !loading && (
           <p className="text-sm text-cream/40">
-            No orders or calls yet. When the chat bot or receptionist records
-            something it will appear here.
+            No orders or calls yet. When a customer places an order through the
+              chatbot or calls the receptionist, it will appear here.
           </p>
         )}
 
@@ -302,6 +305,22 @@ export default function OrdersDashboardPage() {
                     ))}
                   </ul>
                 ) : null}
+
+                {(order.deliveryMethod || order.pickupDate || order.deliveryAddress) && (
+                  <div className="flex flex-wrap gap-3 mb-3 text-xs text-cream/60">
+                    {order.deliveryMethod && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-cream/15 px-2.5 py-1">
+                        {order.deliveryMethod === 'delivery' ? 'Delivery' : 'Pickup'}
+                      </span>
+                    )}
+                    {order.pickupDate && (
+                      <span>Date: {order.pickupDate}</span>
+                    )}
+                    {order.deliveryAddress && (
+                      <span>Address: {order.deliveryAddress}</span>
+                    )}
+                  </div>
+                )}
 
                 {order.message && (
                   <p className="text-xs text-cream/50 mb-1">

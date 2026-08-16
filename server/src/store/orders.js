@@ -7,7 +7,7 @@ import logger from '../utils/logger.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DEFAULT_FILE = path.join(__dirname, '../../data/orders.json')
 
-export const ORDER_STATUSES = ['new', 'confirmed', 'fulfilled', 'cancelled']
+export const ORDER_STATUSES = ['pending', 'new', 'confirmed', 'fulfilled', 'cancelled']
 
 export const ORDER_SOURCES = ['chat', 'phone']
 
@@ -58,14 +58,18 @@ function persist() {
  * @param {string} [order.callSid]
  * @param {string} [order.conversationId]
  * @param {string} [order.transcript]
- * @param {string} [order.isOrder]
+ * @param {boolean} [order.isOrder]
+ * @param {string} [order.deliveryMethod]
+ * @param {string} [order.deliveryAddress]
+ * @param {string} [order.pickupDate]
+ * @param {string} [order.status]
  * @returns {object} the stored record
  */
 export function addOrder(order) {
   const record = {
     id: uid(),
     source: order.source,
-    status: 'new',
+    status: ORDER_STATUSES.includes(order.status) ? order.status : 'new',
     createdAt: new Date().toISOString(),
     customerName: order.customerName || undefined,
     phone: order.phone || undefined,
@@ -76,6 +80,9 @@ export function addOrder(order) {
     conversationId: order.conversationId || undefined,
     transcript: order.transcript || undefined,
     isOrder: order.isOrder ?? Boolean(order.items && order.items.length > 0),
+    deliveryMethod: order.deliveryMethod || undefined,
+    deliveryAddress: order.deliveryAddress || undefined,
+    pickupDate: order.pickupDate || undefined,
   }
   load().unshift(record)
   persist()

@@ -289,7 +289,7 @@ export const topics: TopicIntent[] = [
       'reserve',
       'messenger',
     ],
-    answer: `${businessFacts.ordering} ${businessFacts.leadTime}`,
+    answer: `You can order right here in the chat — just tell me what you'd like! You can also order through the "Order Now" button (opens Facebook Messenger) or by calling us at ${site.phone}.`,
   },
   {
     id: 'order_status',
