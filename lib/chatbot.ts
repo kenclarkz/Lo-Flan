@@ -349,6 +349,8 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
     }
 
     if (result.reply === '__REVIEW__') {
+      // Move into the review step so the confirmation ("yes") is processed there
+      state.orderFlow.step = result.nextStep ?? 'review'
       // Build the review summary
       const summary = buildReviewSummary(state.orderFlow.data)
       pushHistory(state, text, summary)
