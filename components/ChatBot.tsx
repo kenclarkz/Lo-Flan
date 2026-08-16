@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePathname } from 'next/navigation'
-import { Loader2, MessageCircle, Send, X } from 'lucide-react'
+import { ArrowLeft, Check, Loader2, MessageCircle, Send, X } from 'lucide-react'
 import { getLocalChatReply } from '@/lib/chatbot'
+import { submitChatOrder, getServerUrl } from '@/lib/chat'
+import type { OrderFlowState } from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
 
-type Bubble = { role: 'user' | 'bot'; text: string }
+type Bubble = { role: 'user' | 'bot'; text: string; options?: { label: string; value: string }[] }
 
 const WELCOME =
   "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or delivery — or tell me what you'd like to order."
@@ -26,6 +28,7 @@ export function ChatBot() {
   const [busy, setBusy] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const conversationId = useRef<string | undefined>(undefined)
+  const orderFlowRef = useRef<OrderFlowState | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   // Fade the home-screen launcher in with the scrolling video CTA.
@@ -42,18 +45,53 @@ export function ChatBot() {
     listRef.current.scrollTop = listRef.current.scrollHeight
   }, [bubbles, busy, open])
 
-  const send = async () => {
-    const text = input.trim()
+  const send = useCallback(async (textOverride?: string) => {
+    const text = (textOverride ?? input).trim()
     if (!text || busy) return
     setBubbles((b) => [...b, { role: 'user', text }])
-    setInput('')
+    if (!textOverride) setInput('')
     setBusy(true)
+
     // Small pause so the "thinking" state reads naturally — replies are local.
     await new Promise((r) => setTimeout(r, 400))
+
     try {
       const reply = getLocalChatReply(text, conversationId.current)
       conversationId.current = reply.conversationId
-      setBubbles((b) => [...b, { role: 'bot', text: reply.reply }])
+
+      const of = reply.orderFlow
+      orderFlowRef.current = of ?? null
+
+      // If the order flow says submitting, handle the async server call
+      if (of?.active && of.submitted && of.submitting) {
+        setBubbles((b) => [...b, { role: 'bot', text: reply.reply }])
+        await handleSubmit(of)
+      } else {
+        setBubbles((b) => [
+          ...b,
+          { role: 'bot', text: reply.reply, options: undefined },
+        ])
+        // If the flow just started or is at the delivery step, add option buttons
+        if (of?.active && of.step === 'delivery') {
+          setBubbles((b) => [
+            ...b.slice(0, -1),
+            {
+              ...b[b.length - 1],
+              options: [
+                { label: 'Pickup', value: 'pickup' },
+                { label: 'Delivery', value: 'delivery' },
+              ],
+            },
+          ])
+        }
+        // Show cancel option during order flow
+        if (of?.active && of.step !== 'review') {
+          setBubbles((b) => [
+            ...b,
+            { role: 'bot', text: 'Say "cancel" at any time to cancel your order.', options: undefined },
+          ])
+        }
+      }
     } catch {
       setBubbles((b) => [
         ...b,
@@ -65,11 +103,65 @@ export function ChatBot() {
     } finally {
       setBusy(false)
     }
+  }, [input, busy])
+
+  const handleSubmit = async (of: OrderFlowState) => {
+    const serverUrl = getServerUrl()
+    if (!serverUrl) {
+      setBubbles((b) => [
+        ...b,
+        {
+          role: 'bot',
+          text: "I couldn't reach the order server right now. Please try again in a moment, or call us to place your order.",
+        },
+      ])
+      orderFlowRef.current = { ...of, submitting: false, submitResult: 'error' }
+      return
+    }
+
+    try {
+      const order = await submitChatOrder(serverUrl, {
+        items: [{ name: of.data.product?.name ?? 'Flan', quantity: of.data.quantity }],
+        customerName: of.data.customerName,
+        phone: of.data.phone,
+        deliveryMethod: of.data.deliveryMethod || undefined,
+        deliveryAddress: of.data.deliveryAddress || undefined,
+        pickupDate: of.data.date || undefined,
+      })
+
+      setBubbles((b) => [
+        ...b,
+        {
+          role: 'bot',
+          text: `Your order (${order.id}) has been submitted! The owner will review and approve it shortly. You'll be contacted at ${of.data.phone} once it's confirmed. Thank you, ${of.data.customerName}!`,
+        },
+      ])
+      orderFlowRef.current = { ...of, submitting: false, submitted: true, submitResult: 'success' }
+    } catch {
+      setBubbles((b) => [
+        ...b,
+        {
+          role: 'bot',
+          text: "Something went wrong submitting your order. Please try again or call us to place your order directly.",
+        },
+      ])
+      orderFlowRef.current = { ...of, submitting: false, submitResult: 'error' }
+    }
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleOptionClick = (value: string) => {
+    const label =
+      value === 'pickup' ? 'Pickup' :
+      value === 'delivery' ? 'Delivery' :
+      value
+    send(label)
+  }
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') send()
   }
+
+  const isOrdering = orderFlowRef.current?.active === true
 
   return (
     <>
@@ -116,7 +208,7 @@ export function ChatBot() {
             <div className="min-w-0">
               <p className="font-serif text-base leading-tight">Lo&apos;s Flan</p>
               <p className="text-[0.62rem] uppercase tracking-[0.2em] text-sage">
-                {busy ? 'Typing…' : 'Assistant · online'}
+                {busy ? 'Typing…' : isOrdering ? 'Placing order…' : 'Assistant · online'}
               </p>
             </div>
             <button
@@ -133,7 +225,23 @@ export function ChatBot() {
               <Bubble role="bot" text={WELCOME} />
             )}
             {bubbles.map((b, i) => (
-              <Bubble key={i} role={b.role} text={b.text} />
+              <div key={i}>
+                <Bubble role={b.role} text={b.text} />
+                {b.options && b.options.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-2 ml-2">
+                    {b.options.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => handleOptionClick(opt.value)}
+                        disabled={busy}
+                        className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-50"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
             {busy && (
               <div className="flex items-center gap-2 text-xs text-cream/50">
@@ -144,15 +252,28 @@ export function ChatBot() {
           </div>
 
           <div className="flex items-center gap-2 border-t border-cream/10 px-3 py-3">
+            {isOrdering && (
+              <button
+                onClick={() => {
+                  send('cancel order')
+                }}
+                disabled={busy}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-red-400/30 text-red-300 hover:bg-red-400/10 transition-colors disabled:opacity-40"
+                aria-label="Cancel order"
+                title="Cancel order"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Ask or place an order…"
+              onKeyDown={handleKeyDown}
+              placeholder={isOrdering ? 'Type your answer…' : 'Ask or place an order…'}
               className="flex-1 rounded-full bg-espresso-dark border border-cream/15 px-4 py-2.5 text-sm text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
             />
             <button
-              onClick={send}
+              onClick={() => send()}
               disabled={busy || !input.trim()}
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold text-espresso transition-all hover:bg-gold-light disabled:opacity-40"
               aria-label="Send message"
@@ -166,13 +287,13 @@ export function ChatBot() {
   )
 }
 
-function Bubble({ role, text }: Bubble) {
+function Bubble({ role, text }: { role: 'user' | 'bot'; text: string }) {
   const isUser = role === 'user'
   return (
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line',
           isUser
             ? 'rounded-br-sm bg-gold text-espresso'
             : 'rounded-bl-sm bg-cream/10 text-cream'

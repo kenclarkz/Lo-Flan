@@ -10,6 +10,7 @@
  *   - Fuzzy word correction (Levenshtein) so misspellings still match.
  *   - Per-session conversation history so follow-up questions ("how much?")
  *     can be answered using the last product the visitor asked about.
+ *   - Conversational order flow: step-by-step guided ordering.
  *   - A safe fallback that never invents facts.
  */
 
@@ -19,15 +20,31 @@ import {
   products,
   type ProductInfo,
 } from '@/data/chatbot'
+import {
+  type OrderFlowState,
+  newOrderFlowState,
+  detectsOrderIntent,
+  detectsCancelIntent,
+  detectsBackIntent,
+  processStep,
+  buildReviewSummary,
+  findJumpTarget,
+  matchProduct,
+  type OrderStep,
+  type OrderData,
+} from '@/lib/orderFlow'
 
 export interface LocalChatReply {
   reply: string
   conversationId: string
+  /** Present when the order flow is active. */
+  orderFlow?: OrderFlowState
 }
 
 interface ConversationState {
   history: { role: 'user' | 'bot'; text: string }[]
   lastProductId?: string
+  orderFlow: OrderFlowState
 }
 
 /* ------------------------------------------------------------------ */
@@ -256,10 +273,6 @@ function productInfoAnswer(product: ProductInfo): string {
   return `We have the ${product.name} for ${formatPrice(product.price)} — ${product.description} It's a ${product.size}. Ask me about its ingredients or allergens if you'd like.`
 }
 
-function combinedOrderAnswer(product: ProductInfo): string {
-  return `Great choice! The ${product.name} is ${formatPrice(product.price)} (${product.size}). ${chatbotKnowledge.ordering} ${chatbotKnowledge.leadTime}`
-}
-
 const ASPECT_TOPICS = ['prices', 'ingredients', 'allergens', 'sizes'] as const
 const LOGISTICS_TOPICS = ['delivery', 'pickup', 'catering', 'wholesale', 'order_status']
 
@@ -274,10 +287,85 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
   }
 
   const id = conversationId && conversations.has(conversationId) ? conversationId : newConversationId()
-  const state = conversations.get(id) ?? { history: [] }
+  const state = conversations.get(id) ?? { history: [], orderFlow: newOrderFlowState() }
   conversations.set(id, state)
 
   const tokens = tokenize(text).map(correctToken)
+
+  /* -------------------------------------------------------------- */
+  /* Cancel / back — always checked, even during order flow          */
+  /* -------------------------------------------------------------- */
+
+  if (state.orderFlow.active && detectsCancelIntent(text)) {
+    state.orderFlow = newOrderFlowState()
+    const reply = "No problem — order cancelled. I'm still here if you need anything else!"
+    pushHistory(state, text, reply)
+    return { reply, conversationId: id, orderFlow: state.orderFlow }
+  }
+
+  if (state.orderFlow.active && state.orderFlow.step === 'review' && detectsBackIntent(text)) {
+    state.orderFlow.step = 'product'
+    state.orderFlow.data = { ...state.orderFlow.data, product: null }
+    const reply = "Let's start over. Which flan would you like?"
+    pushHistory(state, text, reply)
+    return { reply, conversationId: id, orderFlow: state.orderFlow }
+  }
+
+  if (state.orderFlow.active && detectsBackIntent(text)) {
+    const jumpTarget = findJumpTarget(text)
+    if (jumpTarget) {
+      state.orderFlow.step = jumpTarget
+      const reply = getStepPrompt(jumpTarget, state.orderFlow.data)
+      pushHistory(state, text, reply)
+      return { reply, conversationId: id, orderFlow: state.orderFlow }
+    }
+    // Go back one step
+    const steps: OrderStep[] = ['product', 'quantity', 'date', 'delivery', 'delivery_info', 'name', 'phone', 'review']
+    const idx = steps.indexOf(state.orderFlow.step)
+    if (idx > 0) {
+      state.orderFlow.step = steps[idx - 1]
+      const reply = getStepPrompt(state.orderFlow.step, state.orderFlow.data)
+      pushHistory(state, text, reply)
+      return { reply, conversationId: id, orderFlow: state.orderFlow }
+    }
+  }
+
+  /* -------------------------------------------------------------- */
+  /* Active order flow — process the current step                    */
+  /* -------------------------------------------------------------- */
+
+  if (state.orderFlow.active) {
+    const result = processStep(state.orderFlow.step, text, state.orderFlow.data)
+
+    // Update data from the step result
+    updateOrderData(state.orderFlow.data, state.orderFlow.step, text)
+
+    if (result.reply === '__SUBMIT__') {
+      state.orderFlow.submitted = true
+      state.orderFlow.submitting = true
+      const reply = "Submitting your order…"
+      pushHistory(state, text, reply)
+      return { reply, conversationId: id, orderFlow: state.orderFlow }
+    }
+
+    if (result.reply === '__REVIEW__') {
+      // Build the review summary
+      const summary = buildReviewSummary(state.orderFlow.data)
+      pushHistory(state, text, summary)
+      return { reply: summary, conversationId: id, orderFlow: state.orderFlow }
+    }
+
+    if (result.nextStep) {
+      state.orderFlow.step = result.nextStep
+    }
+
+    pushHistory(state, text, result.reply)
+    return { reply: result.reply, conversationId: id, orderFlow: state.orderFlow }
+  }
+
+  /* -------------------------------------------------------------- */
+  /* Normal chatbot flow                                              */
+  /* -------------------------------------------------------------- */
 
   const bestTopic = getBestTopic(tokens)
   const bestProduct = getBestProduct(tokens)
@@ -289,7 +377,26 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
     state.lastProductId = bestProduct.product.id
 
     if (orderingScore > 0) {
-      reply = combinedOrderAnswer(bestProduct.product)
+      // Start the order flow with this product pre-selected
+      state.orderFlow = {
+        active: true,
+        step: 'quantity',
+        data: {
+          product: bestProduct.product,
+          quantity: 1,
+          date: '',
+          deliveryMethod: '',
+          deliveryAddress: '',
+          customerName: '',
+          phone: '',
+        },
+        submitted: false,
+        submitting: false,
+        submitResult: null,
+      }
+      reply = `Great choice! The ${bestProduct.product.name} is ${formatPrice(bestProduct.product.price)} (${bestProduct.product.size}). How many would you like?`
+      pushHistory(state, text, reply)
+      return { reply, conversationId: id, orderFlow: state.orderFlow }
     } else if (bestTopic && LOGISTICS_TOPICS.includes(bestTopic.id)) {
       reply = topicAnswer(bestTopic.id)
     } else {
@@ -301,7 +408,29 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
       else reply = productInfoAnswer(bestProduct.product)
     }
   } else if (bestTopic) {
-    if (ASPECT_TOPICS.includes(bestTopic.id as (typeof ASPECT_TOPICS)[number]) && state.lastProductId) {
+    if (bestTopic.id === 'ordering' || detectsOrderIntent(text)) {
+      // Start the order flow
+      state.orderFlow = {
+        active: true,
+        step: 'product',
+        data: {
+          product: null,
+          quantity: 1,
+          date: '',
+          deliveryMethod: '',
+          deliveryAddress: '',
+          customerName: '',
+          phone: '',
+        },
+        submitted: false,
+        submitting: false,
+        submitResult: null,
+      }
+      const list = products.map((p) => `• ${p.name} — ${formatPrice(p.price)}`).join('\n')
+      reply = `Let's place an order! Which flan would you like?\n\n${list}\n\nJust tell me the name!`
+      pushHistory(state, text, reply)
+      return { reply, conversationId: id, orderFlow: state.orderFlow }
+    } else if (ASPECT_TOPICS.includes(bestTopic.id as (typeof ASPECT_TOPICS)[number]) && state.lastProductId) {
       const last = products.find((p) => p.id === state.lastProductId)
       if (last) {
         if (bestTopic.id === 'prices') reply = productPriceAnswer(last)
@@ -318,11 +447,74 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
     reply = chatbotKnowledge.fallback
   }
 
-  state.history.push({ role: 'user', text })
-  state.history.push({ role: 'bot', text: reply })
-  if (state.history.length > 40) state.history.splice(0, state.history.length - 40)
+  pushHistory(state, text, reply)
+  return { reply, conversationId: id, orderFlow: state.orderFlow }
+}
 
-  return { reply, conversationId: id }
+/* ------------------------------------------------------------------ */
+/* Order flow helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+function pushHistory(state: ConversationState, userText: string, botText: string) {
+  state.history.push({ role: 'user', text: userText })
+  state.history.push({ role: 'bot', text: botText })
+  if (state.history.length > 40) state.history.splice(0, state.history.length - 40)
+}
+
+function getStepPrompt(step: OrderStep, data: OrderData): string {
+  switch (step) {
+    case 'product':
+      return 'Which flan would you like?'
+    case 'quantity':
+      return 'How many would you like?'
+    case 'date':
+      return 'What date works for you?'
+    case 'delivery':
+      return 'Pickup or delivery?'
+    case 'delivery_info':
+      return "What's the delivery address?"
+    case 'name':
+      return "What's your name?"
+    case 'phone':
+      return "What's your phone number?"
+    case 'review':
+      return buildReviewSummary(data)
+    default:
+      return 'What would you like to do?'
+  }
+}
+
+function updateOrderData(data: OrderData, step: OrderStep, text: string) {
+  switch (step) {
+    case 'product': {
+      const p = matchProduct(text)
+      if (p) data.product = p
+      break
+    }
+    case 'quantity': {
+      const q = parseInt(text.trim(), 10)
+      if (Number.isFinite(q) && q > 0) data.quantity = q
+      break
+    }
+    case 'date':
+      data.date = text.trim()
+      break
+    case 'delivery': {
+      const lower = text.toLowerCase().trim()
+      if (/pick\s*up|pickup|collect|in[\s-]store/.test(lower)) data.deliveryMethod = 'pickup'
+      else if (/deliver|delivery|ship|bring/.test(lower)) data.deliveryMethod = 'delivery'
+      break
+    }
+    case 'delivery_info':
+      data.deliveryAddress = text.trim()
+      break
+    case 'name':
+      data.customerName = text.trim()
+      break
+    case 'phone':
+      data.phone = text.trim()
+      break
+  }
 }
 
 function bestAspectTopic(tokens: string[]): (typeof ASPECT_TOPICS)[number] | null {

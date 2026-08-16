@@ -1,19 +1,20 @@
 import { Router } from 'express'
 import { config } from '../config.js'
-import { listOrders, clearOrders, updateOrderStatus, deleteOrder } from '../store/orders.js'
+import { addOrder, listOrders, clearOrders, updateOrderStatus, deleteOrder } from '../store/orders.js'
 import logger from '../utils/logger.js'
 
 /**
- * Admin orders API.
+ * Orders API.
  *
- * - GET  /api/orders          — admin; list all recorded orders/calls.
- * - POST /api/orders/clear    — admin; wipe the store.
- * - POST /api/orders/:id/status — admin; update an order's status.
- * - DELETE /api/orders/:id    — admin; remove a single record.
+ * - POST /api/orders              — public; submit a new order from the chatbot.
+ * - GET  /api/orders              — admin; list all recorded orders/calls.
+ * - POST /api/orders/clear        — admin; wipe the store.
+ * - POST /api/orders/:id/status   — admin; update an order's status.
+ * - DELETE /api/orders/:id        — admin; remove a single record.
  *
- * The website chat bot is fully built-in now (see `lib/chatbot.ts`), so there
- * is no `/api/chat` endpoint anymore. Orders here come from phone calls taken
- * by the AI receptionist.
+ * The chatbot creates orders via the public endpoint; they start with
+ * status "pending" so the business owner can approve or deny them from
+ * the admin dashboard.
  *
  * Admin endpoints require `X-Admin-Key: <ADMIN_API_KEY>` (or ?adminKey=).
  */
@@ -30,6 +31,43 @@ export function createOrdersRouter() {
     res.status(401).json({ error: 'unauthorized' })
     return false
   }
+
+  /* -------------------------------------------------------------- */
+  /* Public: submit an order (from the website chatbot)              */
+  /* -------------------------------------------------------------- */
+
+  router.post('/orders', (req, res) => {
+    const { items, customerName, phone, deliveryMethod, deliveryAddress, pickupDate, notes } = req.body ?? {}
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: 'items_required' })
+    }
+    if (!customerName || typeof customerName !== 'string') {
+      return res.status(400).json({ error: 'customerName_required' })
+    }
+
+    const record = addOrder({
+      source: 'chat',
+      customerName: customerName.trim(),
+      phone: phone || undefined,
+      items: items.map((item) => ({
+        name: String(item.name || ''),
+        quantity: Math.max(1, Number(item.quantity) || 1),
+      })),
+      deliveryMethod: deliveryMethod || undefined,
+      deliveryAddress: deliveryAddress || undefined,
+      pickupDate: pickupDate || undefined,
+      notes: notes || undefined,
+      status: 'pending',
+    })
+
+    logger.info(`chat order created: ${record.id} by ${record.customerName}`)
+    return res.status(201).json({ ok: true, order: record })
+  })
+
+  /* -------------------------------------------------------------- */
+  /* Admin endpoints                                                 */
+  /* -------------------------------------------------------------- */
 
   router.get('/orders', (_req, res) => {
     if (!requireAdmin(_req, res)) return

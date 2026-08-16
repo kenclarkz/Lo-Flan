@@ -57,7 +57,7 @@ export function setAdminKey(key: string) {
 /* Admin orders API                                                    */
 /* ------------------------------------------------------------------ */
 
-export const ORDER_STATUSES = ['new', 'confirmed', 'fulfilled', 'cancelled'] as const
+export const ORDER_STATUSES = ['pending', 'new', 'confirmed', 'fulfilled', 'cancelled'] as const
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
 export type OrderSource = 'chat' | 'phone'
@@ -81,6 +81,9 @@ export interface Order {
   conversationId?: string
   transcript?: string
   isOrder?: boolean
+  deliveryMethod?: string
+  deliveryAddress?: string
+  pickupDate?: string
 }
 
 function adminHeaders(adminKey: string): Record<string, string> {
@@ -126,4 +129,33 @@ export async function updateOrderStatus(
 
 export async function clearAllOrders(serverUrl: string, adminKey: string): Promise<void> {
   await adminFetch(serverUrl, adminKey, '/api/orders/clear', { method: 'POST' })
+}
+
+/* ------------------------------------------------------------------ */
+/* Public: submit a chat order (no admin key needed)                   */
+/* ------------------------------------------------------------------ */
+
+export interface ChatOrderSubmission {
+  items: OrderItem[]
+  customerName: string
+  phone?: string
+  deliveryMethod?: string
+  deliveryAddress?: string
+  pickupDate?: string
+  notes?: string
+}
+
+export async function submitChatOrder(
+  serverUrl: string,
+  order: ChatOrderSubmission
+): Promise<Order> {
+  const res = await fetch(`${serverUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(order),
+  })
+  if (!res.ok) throw new Error(`order_submit_${res.status}`)
+  const body = (await res.json()) as { order?: Order }
+  if (!body.order) throw new Error('order_submit_empty')
+  return body.order
 }
