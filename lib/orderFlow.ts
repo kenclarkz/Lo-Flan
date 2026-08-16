@@ -2,7 +2,7 @@
  * Conversational order flow for the Lo-Flan chatbot.
  *
  * Guides the customer step-by-step through placing an order:
- *   product → quantity → date → delivery/pickup → contact info → review → submit
+ *   product (multi-select) → items_quantity (per item) → date → delivery/pickup → contact info → review → submit
  *
  * The flow is a pure state machine — no side effects, no server calls.
  * The ChatBot component reads the state and renders the appropriate UI.
@@ -18,7 +18,7 @@ import type { ProductInfo } from '@/data/chatbot'
 
 export const ORDER_STEPS = [
   'product',
-  'quantity',
+  'items_quantity',
   'date',
   'delivery',
   'delivery_info',
@@ -33,9 +33,13 @@ export type OrderStep = (typeof ORDER_STEPS)[number]
 /* Order data                                                          */
 /* ------------------------------------------------------------------ */
 
-export interface OrderData {
-  product: ProductInfo | null
+export interface OrderItemEntry {
+  product: ProductInfo
   quantity: number
+}
+
+export interface OrderData {
+  items: OrderItemEntry[]
   date: string
   deliveryMethod: '' | 'pickup' | 'delivery'
   deliveryAddress: string
@@ -45,8 +49,7 @@ export interface OrderData {
 
 export function emptyOrderData(): OrderData {
   return {
-    product: null,
-    quantity: 1,
+    items: [],
     date: '',
     deliveryMethod: '',
     deliveryAddress: '',
@@ -68,6 +71,8 @@ export interface OrderFlowState {
   submitting: boolean
   /** If set, the order was successfully submitted. */
   submitResult: 'success' | 'error' | null
+  /** Index into data.items for the current items_quantity prompt. */
+  currentItemIndex: number
 }
 
 export function newOrderFlowState(): OrderFlowState {
@@ -78,6 +83,7 @@ export function newOrderFlowState(): OrderFlowState {
     submitted: false,
     submitting: false,
     submitResult: null,
+    currentItemIndex: 0,
   }
 }
 
@@ -160,6 +166,32 @@ export function matchProduct(text: string): ProductInfo | null {
   return best?.product ?? null
 }
 
+export function matchProducts(text: string): ProductInfo[] {
+  const lower = text.toLowerCase().trim()
+  const results: { product: ProductInfo; score: number }[] = []
+  for (const product of products) {
+    const keywords = [product.name.toLowerCase(), ...product.keywords.map((k) => k.toLowerCase())]
+    let score = 0
+    for (const kw of keywords) {
+      if (kw.includes(' ') ? lower.includes(kw) : lower.split(/\s+/).includes(kw)) {
+        score += 1
+      }
+    }
+    if (score > 0) {
+      results.push({ product, score })
+    }
+  }
+  // Deduplicate by product id (keep highest score)
+  const seen = new Map<string, { product: ProductInfo; score: number }>()
+  for (const r of results) {
+    const existing = seen.get(r.product.id)
+    if (!existing || r.score > existing.score) seen.set(r.product.id, r)
+  }
+  return [...seen.values()]
+    .sort((a, b) => b.score - a.score)
+    .map((r) => r.product)
+}
+
 /* ------------------------------------------------------------------ */
 /* Quantity parsing                                                    */
 /* ------------------------------------------------------------------ */
@@ -221,12 +253,12 @@ export interface StepResult {
  * Process a user message for the given step.
  * Returns the bot reply, the next step, and any UI hints.
  */
-export function processStep(step: OrderStep, text: string, data: OrderData): StepResult {
+export function processStep(step: OrderStep, text: string, data: OrderData, currentItemIndex: number = 0): StepResult {
   switch (step) {
     case 'product':
       return processProduct(text, data)
-    case 'quantity':
-      return processQuantity(text, data)
+    case 'items_quantity':
+      return processItemsQuantity(text, data, currentItemIndex)
     case 'date':
       return processDate(text, data)
     case 'delivery':
@@ -245,33 +277,63 @@ export function processStep(step: OrderStep, text: string, data: OrderData): Ste
 }
 
 function processProduct(text: string, data: OrderData): StepResult {
-  const product = matchProduct(text)
-  if (!product) {
+  const matched = matchProducts(text)
+  if (matched.length === 0) {
     const list = products.map((p) => `• ${p.name} — ${formatPrice(p.price)}`).join('\n')
     return {
-      reply: `Which flan would you like? Here are our options:\n${list}\n\nJust tell me the name!`,
+      reply: `Which flan(s) would you like? You can select multiple! Here are our options:\n${list}\n\nUse the checkboxes below or tell me the name(s)!`,
       nextStep: 'product',
       needsInput: true,
     }
   }
+  if (matched.length === 1) {
+    data.items = [{ product: matched[0], quantity: 1 }]
+    return {
+      reply: `Great choice — the ${matched[0].name} is ${formatPrice(matched[0].price)}! How many would you like?`,
+      nextStep: 'items_quantity',
+      needsInput: true,
+    }
+  }
+  // Multiple products selected
+  data.items = matched.map((p) => ({ product: p, quantity: 1 }))
+  const names = matched.map((p) => p.name).join(', ')
   return {
-    reply: `Great choice — the ${product.name} is ${formatPrice(product.price)}! How many would you like?`,
-    nextStep: 'quantity',
+    reply: `Great picks — ${names}! Let's set the quantity for each.\n\nHow many ${matched[0].name} would you like?`,
+    nextStep: 'items_quantity',
     needsInput: true,
   }
 }
 
-function processQuantity(text: string, data: OrderData): StepResult {
+function processItemsQuantity(text: string, data: OrderData, currentItemIndex: number): StepResult {
   const qty = parseQuantity(text)
   if (!qty || qty < 1) {
     return {
       reply: 'How many would you like? You can say a number like "2" or a word like "one".',
-      nextStep: 'quantity',
+      nextStep: 'items_quantity',
       needsInput: true,
     }
   }
+
+  // Set the quantity for the current item
+  if (currentItemIndex >= 0 && currentItemIndex < data.items.length) {
+    data.items[currentItemIndex].quantity = qty
+  }
+
+  const currentItemName = data.items[currentItemIndex]?.product.name ?? 'item'
+
+  // Check if there are more items to process
+  if (currentItemIndex + 1 < data.items.length) {
+    const nextItem = data.items[currentItemIndex + 1]
+    return {
+      reply: `Got it — ${qty}× ${currentItemName}. How many ${nextItem.product.name} would you like?`,
+      nextStep: 'items_quantity',
+      needsInput: true,
+    }
+  }
+
+  // All items processed — move to date step
   return {
-    reply: `Got it — ${qty} ${qty === 1 ? (data.product?.name ?? 'flan') : (data.product?.name ?? 'flans') + 's'}. What date would you like to pick them up or have them delivered?\n\nYou can say something like "this Saturday" or "August 20".`,
+    reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick them up or have them delivered?\n\nYou can say something like "this Saturday" or "August 20".`,
     nextStep: 'date',
     needsInput: true,
   }
@@ -286,8 +348,9 @@ function processDate(text: string, data: OrderData): StepResult {
       needsInput: true,
     }
   }
+  const itemSummary = data.items.map((it) => `${it.quantity}× ${it.product.name}`).join(', ')
   return {
-    reply: `Sounds good — ${trimmed}. Would you like pickup or delivery?`,
+    reply: `Sounds good — ${trimmed}. For your order (${itemSummary}), would you like pickup or delivery?`,
     nextStep: 'delivery',
     options: [
       { label: 'Pickup', value: 'pickup' },
@@ -397,7 +460,8 @@ function processReview(text: string, data: OrderData): StepResult {
 
 const STEP_JUMP_KEYWORDS: Record<string, OrderStep> = {
   product: 'product',
-  quantity: 'quantity',
+  items: 'items_quantity',
+  quantity: 'items_quantity',
   date: 'date',
   delivery: 'delivery',
   name: 'name',
@@ -418,14 +482,18 @@ export function findJumpTarget(text: string): OrderStep | null {
 
 export function buildReviewSummary(data: OrderData): string {
   const lines: string[] = ['Here\'s your order summary:', '']
-  if (data.product) {
-    lines.push(`Product: ${data.product.name}`)
-    lines.push(`Price: ${formatPrice(data.product.price)} each`)
+
+  if (data.items.length > 0) {
+    lines.push('Items:')
+    let subtotal = 0
+    for (const item of data.items) {
+      const lineTotal = item.product.price * item.quantity
+      subtotal += lineTotal
+      lines.push(`  • ${item.quantity}× ${item.product.name} — ${formatPrice(item.product.price)} each = ${formatPrice(lineTotal)}`)
+    }
+    lines.push(`Subtotal: ${formatPrice(subtotal)}`)
   }
-  lines.push(`Quantity: ${data.quantity}`)
-  if (data.product) {
-    lines.push(`Subtotal: ${formatPrice(data.product.price * data.quantity)}`)
-  }
+
   lines.push(`Date: ${data.date || 'Not specified'}`)
   lines.push(`Method: ${data.deliveryMethod === 'delivery' ? 'Delivery' : 'Pickup'}`)
   if (data.deliveryAddress) {
