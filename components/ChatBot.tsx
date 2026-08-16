@@ -108,11 +108,13 @@ export function ChatBot() {
   const handleSubmit = async (of: OrderFlowState) => {
     const serverUrl = getServerUrl()
     if (!serverUrl) {
+      console.warn('[order] server URL is empty — order cannot be submitted')
+      console.warn('[order] Set NEXT_PUBLIC_SERVER_URL at build time, or save a server URL in the admin Orders dashboard.')
       setBubbles((b) => [
         ...b,
         {
           role: 'bot',
-          text: "I couldn't reach the order server right now. Please try again in a moment, or call us to place your order.",
+          text: "I couldn't reach the order server right now. The server address isn't configured — please try calling us or using the Order Now button to place your order on Messenger.",
         },
       ])
       orderFlowRef.current = { ...of, submitting: false, submitResult: 'error' }
@@ -120,6 +122,7 @@ export function ChatBot() {
     }
 
     try {
+      console.log(`[order] submitting to ${serverUrl}`)
       const order = await submitChatOrder(serverUrl, {
         items: [{ name: of.data.product?.name ?? 'Flan', quantity: of.data.quantity }],
         customerName: of.data.customerName,
@@ -129,6 +132,7 @@ export function ChatBot() {
         pickupDate: of.data.date || undefined,
       })
 
+      console.log('[order] success', order.id)
       setBubbles((b) => [
         ...b,
         {
@@ -137,7 +141,8 @@ export function ChatBot() {
         },
       ])
       orderFlowRef.current = { ...of, submitting: false, submitted: true, submitResult: 'success' }
-    } catch {
+    } catch (err) {
+      console.error('[order] submission failed:', err)
       setBubbles((b) => [
         ...b,
         {
