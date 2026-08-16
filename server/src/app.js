@@ -1,7 +1,7 @@
 import express from 'express'
 import { config } from './config.js'
 import { createTwilioRouter } from './routes/twilio.js'
-import { createChatRouter } from './routes/chat.js'
+import { createOrdersRouter } from './routes/orders.js'
 import logger from './utils/logger.js'
 
 export function createApp() {
@@ -20,7 +20,6 @@ export function createApp() {
         twilioWebhook: 'POST /twilio/incoming',
         statusCallback: 'POST /twilio/status',
         mediaStreams: 'WS /media-stream',
-        chat: 'POST /api/chat',
         orders: 'GET /api/orders (admin)',
       },
     })
@@ -37,7 +36,7 @@ export function createApp() {
   })
 
   app.use('/twilio', createTwilioRouter())
-  app.use('/api', createChatRouter())
+  app.use('/api', createOrdersRouter())
 
   // 404
   app.use((req, res) => {

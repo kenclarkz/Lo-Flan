@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePathname } from 'next/navigation'
 import { Loader2, MessageCircle, Send, X } from 'lucide-react'
-import { sendChatMessage } from '@/lib/chat'
+import { getLocalChatReply } from '@/lib/chatbot'
 import { cn } from '@/lib/utils'
 
 type Bubble = { role: 'user' | 'bot'; text: string }
@@ -48,19 +48,18 @@ export function ChatBot() {
     setBubbles((b) => [...b, { role: 'user', text }])
     setInput('')
     setBusy(true)
+    // Small pause so the "thinking" state reads naturally — replies are local.
+    await new Promise((r) => setTimeout(r, 400))
     try {
-      const reply = await sendChatMessage(text, conversationId.current)
+      const reply = getLocalChatReply(text, conversationId.current)
       conversationId.current = reply.conversationId
       setBubbles((b) => [...b, { role: 'bot', text: reply.reply }])
-    } catch (err) {
-      const noServer = err instanceof Error && err.message === 'no_server_url'
+    } catch {
       setBubbles((b) => [
         ...b,
         {
           role: 'bot',
-          text: noServer
-            ? 'The chat assistant is not connected yet. You can still order through the Order Now button or by phone — we will get back to you.'
-            : "Sorry, I couldn't reach the assistant right now. Please try again in a moment.",
+          text: "Sorry, I ran into a problem. Please try again in a moment, or use the Order Now button or call us — we will get back to you.",
         },
       ])
     } finally {

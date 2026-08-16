@@ -33,16 +33,17 @@
 - `/about` — Brand story, timeline, values, process
 - `/contact` — Contact form, hours, catering & wholesale inquiries
 
-### AI Phone Receptionist + Chatbot + Orders (Stage 2)
-- **Twilio Voice + Media Streams** backend in `server/` that answers calls
-  with a Gemini Live (free tier) AI receptionist
-- **Website chat bot** (`ChatBot` widget) answers questions and takes orders —
-  there's a **"Chat with us"** button right above the big Messenger "Order Now"
-  button on the home screen
-- Real menu prices are business facts now; the receptionist and chat bot can
-  both take orders
-- Every chat order and phone call is recorded and shown in the admin panel
-  under **Orders & Chat** (`/admin/panel/orders`)
+### Built-in Chat Assistant + AI Phone Receptionist + Orders
+- **Built-in chat assistant** (`ChatBot` widget) — fully local, runs in the
+  browser with no API key, no external AI service, and no server. It answers
+  questions about the menu, prices, hours, delivery, catering, and more using
+  an easy-to-edit knowledge base (`data/chatbot.ts`), and keeps conversation
+  context during the session. There's a **"Chat with us"** button right above
+  the big Messenger "Order Now" button on the home screen.
+- **Twilio Voice + Media Streams** backend in `server/` answers calls with a
+  Gemini Live (free tier) AI receptionist and records call transcripts.
+- Call records are shown in the admin panel under **Orders & Chat**
+  (`/admin/panel/orders`).
 - See [`server/README.md`](server/README.md)
 
 ---
@@ -80,10 +81,10 @@ npm run lint
 npm run typecheck
 ```
 
-### AI Phone Receptionist + Chatbot (optional, separate backend)
+### AI Phone Receptionist (optional, separate backend)
 
-The receptionist and chat bot live in their own package under `server/` so
-they never touch the website build:
+The phone receptionist lives in its own package under `server/` so it never
+touches the website build. The website chat assistant needs no backend at all.
 
 ```bash
 cd server
@@ -95,9 +96,10 @@ npm run dev                 # http://localhost:8080  (+ health check)
 Convenience aliases from the repo root: `npm run receptionist:dev`,
 `npm run receptionist:start`, `npm run receptionist:test`.
 
-### Pointing the website at the backend
+### Pointing the Orders dashboard at the backend
 
-The chat bot and the Orders dashboard need to know where the backend lives:
+Only the admin **Orders & Chat** dashboard needs to know where the backend
+lives (to list recorded phone calls):
 
 - Set `NEXT_PUBLIC_SERVER_URL=https://your-backend.example` when building
   (e.g. your ngrok/Railway/Cloud Run URL), **and/or**
@@ -123,7 +125,7 @@ Full setup, Twilio console steps, and a testing guide:
 │   ├── Experience.tsx           # Scene composition
 │   ├── ScrollController.tsx     # Lenis + GSAP + progress bar
 │   ├── OrderNowButton.tsx       # Fixed Messenger order button (admin-configurable link)
-│   ├── ChatBot.tsx              # Floating chat bot widget (orders + Q&A)
+│   ├── ChatBot.tsx              # Floating chat bot widget (built-in, local answers)
 │   ├── HeroFlan.tsx             # Scene 1
 │   ├── IngredientExplosion.tsx  # Scene 2
 │   ├── BlenderScene.tsx         # Scene 3
@@ -153,11 +155,13 @@ Full setup, Twilio console steps, and a testing guide:
 │       ├── GlbModel.tsx
 │       └── math.ts
 ├── data/
-│   ├── products.ts              # Product catalog (source of truth)
-│   └── site.ts                  # Site config, nav, chapters
+│   ├── chatbot.ts              # Chat assistant knowledge base (easy to edit)
+│   ├── products.ts             # Product catalog (source of truth)
+│   └── site.ts                 # Site config, nav, chapters
 ├── lib/
-│   ├── admin.ts                 # Admin login/session, video library, messenger link
-│   ├── chat.ts                  # Chat bot + admin orders API helpers (server URL, admin key)
+│   ├── admin.ts                # Admin login/session, video library, messenger link
+│   ├── chatbot.ts              # Built-in chat engine (intents, fuzzy match, context)
+│   ├── chat.ts                 # Admin orders API helpers (server URL, admin key)
 │   ├── anim.ts                  # GSAP + ScrollTrigger setup
 │   ├── lenis.ts                 # Lenis singleton + integration
 │   ├── usePinnedScene.ts        # ScrollTrigger pin + progress hook
@@ -175,9 +179,9 @@ Full setup, Twilio console steps, and a testing guide:
 │   ├── oven/                    # Drop oven GLB here
 │   └── sequences/               # PNG sequences / MP4 clips
 ├── BLENDER_GUIDE.md             # Full Blender integration docs
-├── server/                      # AI receptionist + chatbot backend (Twilio + Gemini)
+├── server/                      # AI phone receptionist backend (Twilio + Gemini Live)
 │   ├── README.md                #   setup, Twilio console config, testing
-│   ├── src/                     #   webhooks, Media Streams WS bridge, chat, order store
+│   ├── src/                     #   webhooks, Media Streams WS bridge, order store
 │   └── test/                    #   node:test suites
 ├── .github/workflows/ci.yml     # GitHub Actions CI
 └── README.md                    # This file
