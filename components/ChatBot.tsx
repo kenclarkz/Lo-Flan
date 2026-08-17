@@ -2,13 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePathname } from 'next/navigation'
-import { ArrowLeft, Check, Loader2, MessageCircle, Send, X } from 'lucide-react'
+import { Check, Loader2, MessageCircle, Send, X } from 'lucide-react'
 import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl } from '@/lib/chat'
 import type { OrderFlowState } from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
+import { menu, formatPrice } from '@/data/products'
 
-type Bubble = { role: 'user' | 'bot'; text: string; options?: { label: string; value: string }[] }
+type Bubble = {
+  role: 'user' | 'bot'
+  text: string
+  options?: { label: string; value: string }[]
+  productSelect?: boolean
+  quantityFor?: string
+}
 
 const WELCOME =
   "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or delivery — or tell me what you'd like to order."
@@ -27,6 +34,7 @@ export function ChatBot() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
   const conversationId = useRef<string | undefined>(undefined)
   const orderFlowRef = useRef<OrderFlowState | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -67,10 +75,32 @@ export function ChatBot() {
         setBubbles((b) => [...b, { role: 'bot', text: reply.reply }])
         await handleSubmit(of)
       } else {
+        // Determine what to show on the bot bubble
+        const isProductStep = of?.active && of.step === 'product'
+        const isItemsQtyStep = of?.active && of.step === 'items_quantity'
+
+        let quantityFor: string | undefined
+        if (isItemsQtyStep && of) {
+          const idx = of.data.items.length - 1
+          if (idx >= 0) quantityFor = of.data.items[idx].product.name
+        }
+
         setBubbles((b) => [
           ...b,
-          { role: 'bot', text: reply.reply, options: undefined },
+          {
+            role: 'bot',
+            text: reply.reply,
+            options: undefined,
+            productSelect: isProductStep,
+            quantityFor,
+          },
         ])
+
+        // Reset selected products when entering the product step fresh
+        if (isProductStep && of && of.data.items.length === 0) {
+          setSelectedProducts(new Set())
+        }
+
         // If the flow just started or is at the delivery step, add option buttons
         if (of?.active && of.step === 'delivery') {
           setBubbles((b) => [
@@ -110,8 +140,12 @@ export function ChatBot() {
     const target = serverUrl || window.location.origin
     console.log(`[order] submitting to ${target}/api/orders${serverUrl ? '' : ' (same-origin)'}`)
     try {
+      const items = of.data.items.map((it) => ({
+        name: it.product.name,
+        quantity: it.quantity,
+      }))
       const order = await submitChatOrder(serverUrl, {
-        items: [{ name: of.data.product?.name ?? 'Flan', quantity: of.data.quantity }],
+        items: items.length > 0 ? items : [{ name: 'Flan', quantity: 1 }],
         customerName: of.data.customerName,
         phone: of.data.phone,
         deliveryMethod: of.data.deliveryMethod || undefined,
@@ -147,6 +181,24 @@ export function ChatBot() {
       value === 'delivery' ? 'Delivery' :
       value
     send(label)
+  }
+
+  const handleProductToggle = (productId: string) => {
+    setSelectedProducts((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+  }
+
+  const handleProductContinue = () => {
+    if (selectedProducts.size === 0) return
+    const names = menu
+      .filter((p) => selectedProducts.has(p.id))
+      .map((p) => p.name)
+      .join(' and ')
+    send(names)
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -216,9 +268,81 @@ export function ChatBot() {
             {bubbles.length === 0 && (
               <Bubble role="bot" text={WELCOME} />
             )}
-            {bubbles.map((b, i) => (
+            {bubbles.map((b, i) => {
+              const isLastBubble = i === bubbles.length - 1
+              const flowState = orderFlowRef.current
+              const showQuantityButtons =
+                b.quantityFor ||
+                (isLastBubble && flowState?.active && flowState.step === 'items_quantity')
+              const qtyItemName = showQuantityButtons
+                ? (flowState?.data.items[flowState.currentItemIndex]?.product.name ?? '')
+                : ''
+
+              return (
               <div key={i}>
                 <Bubble role={b.role} text={b.text} />
+                {b.productSelect && (
+                  <div className="mt-2 ml-2 space-y-1.5">
+                    {menu.map((product) => (
+                      <label
+                        key={product.id}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-xl border px-3 py-2 text-xs font-medium cursor-pointer transition-all',
+                          selectedProducts.has(product.id)
+                            ? 'border-gold/60 bg-gold/15 text-gold'
+                            : 'border-cream/15 bg-cream/5 text-cream/70 hover:border-cream/30'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all',
+                            selectedProducts.has(product.id)
+                              ? 'border-gold bg-gold text-espresso'
+                              : 'border-cream/30 bg-transparent'
+                          )}
+                        >
+                          {selectedProducts.has(product.id) && <Check className="h-3 w-3" />}
+                        </span>
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={selectedProducts.has(product.id)}
+                          onChange={() => handleProductToggle(product.id)}
+                        />
+                        <span className="flex-1 min-w-0">
+                          <span className="block truncate">{product.name}</span>
+                          <span className="block text-[0.6rem] opacity-60">{formatPrice(product.price)}</span>
+                        </span>
+                      </label>
+                    ))}
+                    <button
+                      onClick={handleProductContinue}
+                      disabled={busy || selectedProducts.size === 0}
+                      className="mt-1 rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-40"
+                    >
+                      Continue with {selectedProducts.size} item{selectedProducts.size !== 1 ? 's' : ''}
+                    </button>
+                  </div>
+                )}
+                {showQuantityButtons && (
+                  <div className="mt-2 ml-2 space-y-1.5">
+                    {qtyItemName && (
+                      <p className="text-[0.65rem] text-cream/50 ml-1">Qty for {qtyItemName}:</p>
+                    )}
+                    <div className="flex flex-wrap gap-2">
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <button
+                          key={n}
+                          onClick={() => send(String(n))}
+                          disabled={busy}
+                          className="rounded-full border border-gold/40 bg-gold/10 px-3 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-50"
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {b.options && b.options.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-2 ml-2">
                     {b.options.map((opt) => (
@@ -234,7 +358,8 @@ export function ChatBot() {
                   </div>
                 )}
               </div>
-            ))}
+              )
+            })}
             {busy && (
               <div className="flex items-center gap-2 text-xs text-cream/50">
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-gold" />

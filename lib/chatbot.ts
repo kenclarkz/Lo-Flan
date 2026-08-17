@@ -29,7 +29,6 @@ import {
   processStep,
   buildReviewSummary,
   findJumpTarget,
-  matchProduct,
   type OrderStep,
   type OrderData,
 } from '@/lib/orderFlow'
@@ -305,8 +304,8 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
 
   if (state.orderFlow.active && state.orderFlow.step === 'review' && detectsBackIntent(text)) {
     state.orderFlow.step = 'product'
-    state.orderFlow.data = { ...state.orderFlow.data, product: null }
-    const reply = "Let's start over. Which flan would you like?"
+    state.orderFlow.data = { ...state.orderFlow.data, items: [] }
+    const reply = "Let's start over. Which flan(s) would you like? You can select multiple!"
     pushHistory(state, text, reply)
     return { reply, conversationId: id, orderFlow: state.orderFlow }
   }
@@ -320,7 +319,7 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
       return { reply, conversationId: id, orderFlow: state.orderFlow }
     }
     // Go back one step
-    const steps: OrderStep[] = ['product', 'quantity', 'date', 'delivery', 'delivery_info', 'name', 'phone', 'review']
+    const steps: OrderStep[] = ['product', 'items_quantity', 'date', 'delivery', 'delivery_info', 'name', 'phone', 'review']
     const idx = steps.indexOf(state.orderFlow.step)
     if (idx > 0) {
       state.orderFlow.step = steps[idx - 1]
@@ -335,7 +334,7 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
   /* -------------------------------------------------------------- */
 
   if (state.orderFlow.active) {
-    const result = processStep(state.orderFlow.step, text, state.orderFlow.data)
+    const result = processStep(state.orderFlow.step, text, state.orderFlow.data, state.orderFlow.currentItemIndex)
 
     // Update data from the step result
     updateOrderData(state.orderFlow.data, state.orderFlow.step, text)
@@ -358,7 +357,15 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
     }
 
     if (result.nextStep) {
+      // Advance the item index when staying at items_quantity
+      if (result.nextStep === 'items_quantity' && state.orderFlow.step === 'items_quantity') {
+        state.orderFlow.currentItemIndex += 1
+      }
       state.orderFlow.step = result.nextStep
+      // Reset item index when leaving items_quantity
+      if (result.nextStep !== 'items_quantity') {
+        state.orderFlow.currentItemIndex = 0
+      }
     }
 
     pushHistory(state, text, result.reply)
@@ -382,10 +389,9 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
       // Start the order flow with this product pre-selected
       state.orderFlow = {
         active: true,
-        step: 'quantity',
+        step: 'items_quantity',
         data: {
-          product: bestProduct.product,
-          quantity: 1,
+          items: [{ product: bestProduct.product, quantity: 1 }],
           date: '',
           deliveryMethod: '',
           deliveryAddress: '',
@@ -395,6 +401,7 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
         submitted: false,
         submitting: false,
         submitResult: null,
+        currentItemIndex: 0,
       }
       reply = `Great choice! The ${bestProduct.product.name} is ${formatPrice(bestProduct.product.price)} (${bestProduct.product.size}). How many would you like?`
       pushHistory(state, text, reply)
@@ -416,8 +423,7 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
         active: true,
         step: 'product',
         data: {
-          product: null,
-          quantity: 1,
+          items: [],
           date: '',
           deliveryMethod: '',
           deliveryAddress: '',
@@ -427,9 +433,10 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
         submitted: false,
         submitting: false,
         submitResult: null,
+        currentItemIndex: 0,
       }
       const list = products.map((p) => `• ${p.name} — ${formatPrice(p.price)}`).join('\n')
-      reply = `Let's place an order! Which flan would you like?\n\n${list}\n\nJust tell me the name!`
+      reply = `Let's place an order! Which flan(s) would you like? You can select multiple!\n\n${list}\n\nUse the checkboxes below or tell me the name(s)!`
       pushHistory(state, text, reply)
       return { reply, conversationId: id, orderFlow: state.orderFlow }
     } else if (ASPECT_TOPICS.includes(bestTopic.id as (typeof ASPECT_TOPICS)[number]) && state.lastProductId) {
@@ -466,8 +473,8 @@ function pushHistory(state: ConversationState, userText: string, botText: string
 function getStepPrompt(step: OrderStep, data: OrderData): string {
   switch (step) {
     case 'product':
-      return 'Which flan would you like?'
-    case 'quantity':
+      return 'Which flan(s) would you like? You can select multiple!'
+    case 'items_quantity':
       return 'How many would you like?'
     case 'date':
       return 'What date works for you?'
@@ -488,14 +495,15 @@ function getStepPrompt(step: OrderStep, data: OrderData): string {
 
 function updateOrderData(data: OrderData, step: OrderStep, text: string) {
   switch (step) {
-    case 'product': {
-      const p = matchProduct(text)
-      if (p) data.product = p
+    case 'product':
+      // Products are already set by processProduct — no override needed
       break
-    }
-    case 'quantity': {
+    case 'items_quantity': {
       const q = parseInt(text.trim(), 10)
-      if (Number.isFinite(q) && q > 0) data.quantity = q
+      if (Number.isFinite(q) && q > 0) {
+        const lastIdx = data.items.length - 1
+        if (lastIdx >= 0) data.items[lastIdx].quantity = q
+      }
       break
     }
     case 'date':
