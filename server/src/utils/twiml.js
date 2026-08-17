@@ -15,18 +15,19 @@ export function escapeXml(value) {
 }
 
 /**
- * @param {{ greeting: string, streamUrl: string, callSid?: string }} opts
+ * @param {{ greeting: string, streamUrl: string, callSid?: string, from?: string }} opts
  * @returns {string} TwiML XML
  */
-export function buildIncomingCallTwiML({ greeting, streamUrl, callSid }) {
-  const callParam = callSid
-    ? `\n    <Parameter name="callSid" value="${escapeXml(callSid)}"/>`
-    : ''
+export function buildIncomingCallTwiML({ greeting, streamUrl, callSid, from }) {
+  const params = []
+  if (callSid) params.push(`\n    <Parameter name="callSid" value="${escapeXml(callSid)}"/>`)
+  if (from) params.push(`\n    <Parameter name="from" value="${escapeXml(from)}"/>`)
+  const paramBlock = params.join('')
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Google.en-US-Neural2-J">${escapeXml(greeting)}</Say>
   <Connect>
-    <Stream url="${escapeXml(streamUrl)}">${callParam}
+    <Stream url="${escapeXml(streamUrl)}">${paramBlock}
     </Stream>
   </Connect>
 </Response>

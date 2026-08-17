@@ -187,7 +187,8 @@ export async function submitChatOrder(
   serverUrl: string,
   submission: ChatOrderSubmission
 ): Promise<Order> {
-  const url = `${serverUrl}/api/orders`
+  const base = serverUrl || ''
+  const url = `${base}/api/orders`
   console.log(`[order] POST ${url}`, submission)
 
   try {
