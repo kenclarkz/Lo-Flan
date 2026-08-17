@@ -82,6 +82,7 @@ export function createTwilioRouter() {
         greeting: config.greetingMessage,
         streamUrl,
         callSid: call.CallSid,
+        from: call.From,
       })
       return res.type('text/xml').send(twiml)
     } catch (err) {

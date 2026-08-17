@@ -110,9 +110,14 @@ export default function OrdersDashboardPage() {
         if (localOrders.length > 0) {
           setOrders(localOrders)
           setLoaded(true)
-          flash('Showing orders saved locally in this browser.')
+          flash('Showing orders saved locally in this browser. Phone orders require a server connection — see below.')
         } else {
-          setError('Enter the admin key above to load orders from the server, or place an order through the chatbot to see it here.')
+          setError(
+            'No backend is configured yet. Phone orders and server-side chat orders will not appear until you connect a backend.\n\n' +
+            '1. Deploy the Lo-Flan backend server and note its public URL.\n' +
+            '2. Set the ADMIN_API_KEY environment variable on the server.\n' +
+            '3. Enter the Server URL and Admin Key above and press "Save connection", then "Load orders".'
+          )
         }
         setLoading(false)
         return

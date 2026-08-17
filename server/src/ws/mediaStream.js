@@ -90,14 +90,13 @@ export function handleMediaStream(ws, deps = {}) {
     if (recorded) return
     recorded = true
     const body = transcript.join('\n').trim()
-    if (!body) return
     const record = addOrder({
       source: 'phone',
       phone: callFrom || undefined,
       callSid: callSid || undefined,
-      transcript: body,
+      transcript: body || undefined,
       customerName: undefined,
-      isOrder: looksLikeOrder(body),
+      isOrder: body ? looksLikeOrder(body) : false,
     })
     logger.info(`[call ${callSid}] recorded call ${record.id}`)
   }
@@ -162,8 +161,9 @@ export function handleMediaStream(ws, deps = {}) {
       case 'start': {
         streamSid = msg.start?.streamSid
         callSid = msg.start?.callSid
-        callFrom = msg.start?.from || msg.start?.caller || null
-        logger.info(`[call ${callSid}] media stream started (sid ${streamSid})`)
+        const custom = msg.start?.customParameters ?? {}
+        callFrom = custom.from || null
+        logger.info(`[call ${callSid}] media stream started (sid ${streamSid}, from ${callFrom})`)
         openSession()
         break
       }
