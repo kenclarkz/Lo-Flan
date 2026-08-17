@@ -18,6 +18,7 @@ import {
   clearAllOrders,
   fetchOrders,
   getAdminKey,
+  getLocalOrders,
   getServerUrl,
   ORDER_STATUSES,
   setAdminKey,
@@ -98,27 +99,50 @@ export default function OrdersDashboardPage() {
     async (showSpinner = true) => {
       const url = getServerUrl()
       const key = getAdminKey()
-      if (!url || !key) {
-        setError('Enter the admin key above to load orders. The server URL is optional when the backend is on the same domain.')
-        return
-      }
+
       if (showSpinner) setLoading(true)
       setError('')
+
+      const localOrders = getLocalOrders()
+
+      if (!url || !key) {
+        // No backend configured — show locally saved orders only
+        if (localOrders.length > 0) {
+          setOrders(localOrders)
+          setLoaded(true)
+          flash('Showing orders saved locally in this browser.')
+        } else {
+          setError('Enter the admin key above to load orders from the server, or place an order through the chatbot to see it here.')
+        }
+        setLoading(false)
+        return
+      }
+
       try {
-        const next = await fetchOrders(url, key)
-        setOrders(next)
+        const remote = await fetchOrders(url, key)
+        // Merge local + remote, deduplicating by id
+        const remoteIds = new Set(remote.map((o) => o.id))
+        const merged = [...remote, ...localOrders.filter((o) => !remoteIds.has(o.id))]
+        setOrders(merged)
         setLoaded(true)
       } catch (err) {
-        setError(
-          err instanceof Error && err.message === 'unauthorized'
-            ? 'The admin key was rejected — check it against ADMIN_API_KEY on the server.'
-            : `Could not reach the server at ${url}. Is it running and publicly accessible?`
-        )
+        // Server unavailable — fall back to local orders
+        if (localOrders.length > 0) {
+          setOrders(localOrders)
+          setLoaded(true)
+          flash('Server unavailable — showing orders saved locally.')
+        } else {
+          setError(
+            err instanceof Error && err.message === 'unauthorized'
+              ? 'The admin key was rejected — check it against ADMIN_API_KEY on the server.'
+              : `Could not reach the server at ${url}. Is it running and publicly accessible?`
+          )
+        }
       } finally {
         setLoading(false)
       }
     },
-    []
+    [flash]
   )
 
   const handleStatusChange = async (id: string, status: OrderStatus) => {

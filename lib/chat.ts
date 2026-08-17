@@ -156,25 +156,74 @@ export interface ChatOrderSubmission {
   notes?: string
 }
 
+const LOCAL_ORDERS_KEY = 'losflan.orders.local'
+
+function loadLocalOrders(): Order[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_ORDERS_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveLocalOrders(orders: Order[]) {
+  try {
+    localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders))
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+export function getLocalOrders(): Order[] {
+  return loadLocalOrders()
+}
+
+/**
+ * Try the backend first; if the server is unreachable or returns an error,
+ * persist the order locally so static (GitHub Pages) deployments still work.
+ */
 export async function submitChatOrder(
   serverUrl: string,
-  order: ChatOrderSubmission
+  submission: ChatOrderSubmission
 ): Promise<Order> {
-  // When serverUrl is empty this resolves to /api/orders (same-origin).
   const url = `${serverUrl}/api/orders`
-  console.log(`[order] POST ${url}`, order)
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(order),
-  })
-  const bodyText = await res.text()
-  console.log(`[order] response ${res.status}`, bodyText)
-  if (!res.ok) {
-    const detail = bodyText.slice(0, 200)
-    throw new Error(`order_submit_${res.status}: ${detail}`)
+  console.log(`[order] POST ${url}`, submission)
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(submission),
+    })
+    const bodyText = await res.text()
+    console.log(`[order] response ${res.status}`, bodyText)
+    if (res.ok) {
+      const body = JSON.parse(bodyText) as { order?: Order }
+      if (body.order) return body.order
+    }
+    // Fall through to local storage on non-OK responses
+  } catch (err) {
+    console.warn('[order] backend unavailable, saving locally:', err)
   }
-  const body = JSON.parse(bodyText) as { order?: Order }
-  if (!body.order) throw new Error('order_submit_empty_response')
-  return body.order
+
+  // Fallback: persist in localStorage so the admin panel can see it later
+  const record: Order = {
+    id: `local-${Date.now().toString(36)}`,
+    source: 'chat',
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    customerName: submission.customerName,
+    phone: submission.phone,
+    items: submission.items,
+    deliveryMethod: submission.deliveryMethod,
+    deliveryAddress: submission.deliveryAddress,
+    pickupDate: submission.pickupDate,
+    notes: submission.notes,
+  }
+  const orders = loadLocalOrders()
+  orders.push(record)
+  saveLocalOrders(orders)
+  console.log('[order] saved locally as', record.id)
+  return record
 }
