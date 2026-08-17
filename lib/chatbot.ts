@@ -337,7 +337,7 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
     const result = processStep(state.orderFlow.step, text, state.orderFlow.data, state.orderFlow.currentItemIndex)
 
     // Update data from the step result
-    updateOrderData(state.orderFlow.data, state.orderFlow.step, text)
+    updateOrderData(state.orderFlow.data, state.orderFlow.step, text, state.orderFlow.currentItemIndex)
 
     if (result.reply === '__SUBMIT__') {
       state.orderFlow.submitted = true
@@ -493,7 +493,7 @@ function getStepPrompt(step: OrderStep, data: OrderData): string {
   }
 }
 
-function updateOrderData(data: OrderData, step: OrderStep, text: string) {
+function updateOrderData(data: OrderData, step: OrderStep, text: string, currentItemIndex: number = 0) {
   switch (step) {
     case 'product':
       // Products are already set by processProduct — no override needed
@@ -501,8 +501,9 @@ function updateOrderData(data: OrderData, step: OrderStep, text: string) {
     case 'items_quantity': {
       const q = parseInt(text.trim(), 10)
       if (Number.isFinite(q) && q > 0) {
-        const lastIdx = data.items.length - 1
-        if (lastIdx >= 0) data.items[lastIdx].quantity = q
+        if (currentItemIndex >= 0 && currentItemIndex < data.items.length) {
+          data.items[currentItemIndex].quantity = q
+        }
       }
       break
     }
