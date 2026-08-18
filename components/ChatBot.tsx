@@ -179,13 +179,13 @@ export function ChatBot() {
       orderFlowRef.current = { ...of, submitting: false, submitted: true, submitResult: 'success' }
     } catch (err) {
       console.error('[order] submission failed:', err)
-      const isBackendRejection = err instanceof OrderSubmissionError
       const noServer = !getServerUrl()
+      const isBackendRejection = err instanceof OrderSubmissionError
       let msg: string
-      if (isBackendRejection) {
-        msg = 'The server rejected your order. Please check your details and try again, or call us to place your order directly.'
-      } else if (noServer) {
+      if (noServer) {
         msg = "We couldn't reach the ordering server from this device. Your order hasn't been placed yet — please call us directly and we'll take care of it."
+      } else if (isBackendRejection) {
+        msg = 'The server rejected your order. Please check your details and try again, or call us to place your order directly.'
       } else {
         msg = "Something went wrong submitting your order. Please try again or call us to place your order directly."
       }

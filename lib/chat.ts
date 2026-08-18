@@ -237,6 +237,13 @@ export async function submitChatOrder(
     if (body.order) return body.order
   }
 
+  // No server URL was configured and the same origin returned an error —
+  // the static host (e.g. GitHub Pages) has no backend, so save locally.
+  if (!base) {
+    console.warn('[order] same-origin returned', res.status, '— no backend configured, saving locally')
+    return saveLocalOrder(submission)
+  }
+
   // Backend returned an error (e.g. 400 items_required) — propagate it so
   // the UI does NOT show "submitted".
   let serverError: string | undefined
