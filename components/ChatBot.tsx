@@ -282,7 +282,7 @@ export function ChatBot() {
             </button>
           </div>
 
-          <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4 no-scrollbar">
+          <div ref={listRef} data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {bubbles.length === 0 && (
               <Bubble role="bot" text={WELCOME} />
             )}
