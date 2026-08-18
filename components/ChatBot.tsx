@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import { usePathname } from 'next/navigation'
 import { Check, Loader2, MessageCircle, Send, X } from 'lucide-react'
 import { getLocalChatReply } from '@/lib/chatbot'
-import { submitChatOrder, getServerUrl } from '@/lib/chat'
+import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
 import type { OrderFlowState } from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
 import { menu, formatPrice } from '@/data/products'
@@ -144,8 +144,11 @@ export function ChatBot() {
         name: it.product.name,
         quantity: it.quantity,
       }))
+      if (items.length === 0) {
+        throw new Error('no_items_to_submit')
+      }
       const order = await submitChatOrder(serverUrl, {
-        items: items.length > 0 ? items : [{ name: 'Flan', quantity: 1 }],
+        items,
         customerName: of.data.customerName,
         phone: of.data.phone,
         deliveryMethod: of.data.deliveryMethod || undefined,
@@ -153,22 +156,37 @@ export function ChatBot() {
         pickupDate: of.data.date || undefined,
       })
 
-      console.log('[order] success', order.id)
-      setBubbles((b) => [
-        ...b,
-        {
-          role: 'bot',
-          text: `Your order (${order.id}) has been submitted! The owner will review and approve it shortly. You'll be contacted at ${of.data.phone} once it's confirmed. Thank you, ${of.data.customerName}!`,
-        },
-      ])
+      const isLocal = order.id.startsWith('local-')
+      console.log('[order] success', order.id, isLocal ? '(saved locally)' : '(backend)')
+
+      if (isLocal) {
+        setBubbles((b) => [
+          ...b,
+          {
+            role: 'bot',
+            text: `Your order has been saved locally and will be synced when the server is available. You'll be contacted at ${of.data.phone} once it's confirmed. Thank you, ${of.data.customerName}!`,
+          },
+        ])
+      } else {
+        setBubbles((b) => [
+          ...b,
+          {
+            role: 'bot',
+            text: `Your order (${order.id}) has been submitted! The owner will review and approve it shortly. You'll be contacted at ${of.data.phone} once it's confirmed. Thank you, ${of.data.customerName}!`,
+          },
+        ])
+      }
       orderFlowRef.current = { ...of, submitting: false, submitted: true, submitResult: 'success' }
     } catch (err) {
       console.error('[order] submission failed:', err)
+      const isBackendRejection = err instanceof OrderSubmissionError
       setBubbles((b) => [
         ...b,
         {
           role: 'bot',
-          text: "Something went wrong submitting your order. Please try again or call us to place your order directly.",
+          text: isBackendRejection
+            ? 'The server rejected your order. Please check your details and try again, or call us to place your order directly.'
+            : "Something went wrong submitting your order. Please try again or call us to place your order directly.",
         },
       ])
       orderFlowRef.current = { ...of, submitting: false, submitResult: 'error' }
