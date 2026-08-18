@@ -277,6 +277,36 @@ export function processStep(step: OrderStep, text: string, data: OrderData, curr
 }
 
 function processProduct(text: string, data: OrderData): StepResult {
+  // Try exact product name match first (handles checkbox selections precisely)
+  const trimmed = text.trim()
+  const exactSingle = products.find((p) => p.name.toLowerCase() === trimmed.toLowerCase())
+  if (exactSingle) {
+    data.items = [{ product: exactSingle, quantity: 1 }]
+    return {
+      reply: `Great choice — the ${exactSingle.name} is ${formatPrice(exactSingle.price)}! How many would you like?`,
+      nextStep: 'items_quantity',
+      needsInput: true,
+    }
+  }
+
+  // Try multi-exact match for "A and B" style checkbox selections
+  const andParts = trimmed.toLowerCase().split(/\s+and\s+/)
+  if (andParts.length > 1) {
+    const exactMatches = andParts
+      .map((part) => products.find((p) => p.name.toLowerCase() === part.trim()))
+      .filter((p): p is ProductInfo => p !== undefined)
+    if (exactMatches.length === andParts.length) {
+      data.items = exactMatches.map((p) => ({ product: p, quantity: 1 }))
+      const names = exactMatches.map((p) => p.name).join(', ')
+      return {
+        reply: `Great picks — ${names}! Let's set the quantity for each.\n\nHow many ${exactMatches[0].name} would you like?`,
+        nextStep: 'items_quantity',
+        needsInput: true,
+      }
+    }
+  }
+
+  // Fall back to fuzzy matching for free-text input
   const matched = matchProducts(text)
   if (matched.length === 0) {
     const list = products.map((p) => `• ${p.name} — ${formatPrice(p.price)}`).join('\n')

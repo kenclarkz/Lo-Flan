@@ -81,8 +81,8 @@ export function ChatBot() {
 
         let quantityFor: string | undefined
         if (isItemsQtyStep && of) {
-          const idx = of.data.items.length - 1
-          if (idx >= 0) quantityFor = of.data.items[idx].product.name
+          const idx = of.currentItemIndex
+          if (idx >= 0 && idx < of.data.items.length) quantityFor = of.data.items[idx].product.name
         }
 
         setBubbles((b) => [
