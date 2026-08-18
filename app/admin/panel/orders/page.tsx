@@ -12,6 +12,7 @@ import {
   Phone,
   RefreshCw,
   Trash2,
+  X,
 } from 'lucide-react'
 import { isAuthed, logout } from '@/lib/admin'
 import {
@@ -372,7 +373,27 @@ export default function OrdersDashboardPage() {
                   </div>
                 )}
 
-                <div className="mt-4 flex items-center gap-3">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {(order.status === 'pending' || order.status === 'new') && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        className="border-sage/50 text-sage hover:border-sage hover:text-sage px-4 py-2"
+                        onClick={() => handleStatusChange(order.id, 'confirmed')}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="danger"
+                        className="px-4 py-2"
+                        onClick={() => handleStatusChange(order.id, 'cancelled')}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Deny
+                      </Button>
+                    </>
+                  )}
                   <label className="flex items-center gap-2 text-xs text-cream/50">
                     Status
                     <select
