@@ -102,11 +102,15 @@ Orders placed through the website chatbot POST to `/api/orders` on the
 same origin automatically — no configuration needed when the backend is
 hosted on the same domain. To point at a cross-origin backend:
 
-- Set `NEXT_PUBLIC_SERVER_URL=https://your-backend.example` when building
-  (e.g. your ngrok/Railway/Cloud Run URL), **and/or**
-- in the admin panel, **Orders & Chat → Backend connection**, paste the
-  server URL + `ADMIN_API_KEY` (saved per-browser). Both fields are
-  optional overrides.
+1. Go to **Settings → Secrets and variables → Actions** in your GitHub repo.
+2. Add a repository secret named `NEXT_PUBLIC_SERVER_URL` with your
+   backend URL (e.g. `https://your-backend.example`).
+3. The next build will bake that URL into the static site so **all visitors**
+   (not just the admin) send orders to the correct backend.
+
+You can also override the server URL per-browser in the admin panel under
+**Orders & Chat → Backend connection** (paste the server URL + `ADMIN_API_KEY`).
+Both fields are optional overrides.
 
 Full setup, Twilio console steps, and a testing guide:
 **[`server/README.md`](server/README.md)**.
