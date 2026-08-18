@@ -86,3 +86,64 @@ test('DELETE /api/orders/:id removes a record', async () => {
   })
   assert.equal(missing.status, 404)
 })
+
+test('POST /api/orders rejects when items is missing', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ customerName: 'Jane' }),
+  })
+  assert.equal(res.status, 400)
+  const body = await res.json()
+  assert.equal(body.error, 'items_required')
+})
+
+test('POST /api/orders rejects when items is an empty array', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ items: [], customerName: 'Jane' }),
+  })
+  assert.equal(res.status, 400)
+  const body = await res.json()
+  assert.equal(body.error, 'items_required')
+})
+
+test('POST /api/orders rejects when customerName is missing', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ items: [{ name: 'Vanilla Flan', quantity: 1 }] }),
+  })
+  assert.equal(res.status, 400)
+  const body = await res.json()
+  assert.equal(body.error, 'customerName_required')
+})
+
+test('POST /api/orders accepts a valid chat order payload', async () => {
+  const res = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      items: [
+        { name: 'Vanilla Flan', quantity: 2 },
+        { name: 'Chocoflan', quantity: 1 },
+      ],
+      customerName: 'Jane Doe',
+      phone: '555-0199',
+      deliveryMethod: 'pickup',
+    }),
+  })
+  assert.equal(res.status, 201)
+  const body = await res.json()
+  assert.equal(body.ok, true)
+  assert.ok(body.order)
+  assert.equal(body.order.customerName, 'Jane Doe')
+  assert.equal(body.order.items.length, 2)
+  assert.equal(body.order.items[0].name, 'Vanilla Flan')
+  assert.equal(body.order.items[0].quantity, 2)
+  assert.equal(body.order.items[1].name, 'Chocoflan')
+  assert.equal(body.order.items[1].quantity, 1)
+  assert.equal(body.order.source, 'chat')
+  assert.equal(body.order.status, 'pending')
+})

@@ -179,36 +179,73 @@ export function getLocalOrders(): Order[] {
   return loadLocalOrders()
 }
 
+export class OrderSubmissionError extends Error {
+  constructor(
+    message: string,
+    public statusCode: number,
+    public serverError?: string,
+  ) {
+    super(message)
+    this.name = 'OrderSubmissionError'
+  }
+}
+
 /**
- * Try the backend first; if the server is unreachable or returns an error,
+ * Try the backend first; if the server is unreachable (network error),
  * persist the order locally so static (GitHub Pages) deployments still work.
+ *
+ * Backend validation errors (4xx) are thrown as `OrderSubmissionError` so
+ * the caller knows the order was *rejected* and must not display "submitted".
  */
 export async function submitChatOrder(
   serverUrl: string,
   submission: ChatOrderSubmission
 ): Promise<Order> {
+  if (!Array.isArray(submission.items) || submission.items.length === 0) {
+    throw new OrderSubmissionError('items_required', 400, 'items_required')
+  }
+
   const base = serverUrl || ''
   const url = `${base}/api/orders`
   console.log(`[order] POST ${url}`, submission)
 
+  let res: Response
   try {
-    const res = await fetch(url, {
+    res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(submission),
     })
-    const bodyText = await res.text()
-    console.log(`[order] response ${res.status}`, bodyText)
-    if (res.ok) {
-      const body = JSON.parse(bodyText) as { order?: Order }
-      if (body.order) return body.order
-    }
-    // Fall through to local storage on non-OK responses
   } catch (err) {
     console.warn('[order] backend unavailable, saving locally:', err)
+    return saveLocalOrder(submission)
   }
 
-  // Fallback: persist in localStorage so the admin panel can see it later
+  const bodyText = await res.text()
+  console.log(`[order] response ${res.status}`, bodyText)
+
+  if (res.ok) {
+    const body = JSON.parse(bodyText) as { order?: Order }
+    if (body.order) return body.order
+  }
+
+  // Backend returned an error (e.g. 400 items_required) — propagate it so
+  // the UI does NOT show "submitted".
+  let serverError: string | undefined
+  try {
+    const parsed = JSON.parse(bodyText) as { error?: string }
+    serverError = parsed.error
+  } catch {
+    /* non-JSON error body */
+  }
+  throw new OrderSubmissionError(
+    serverError ?? `backend_error_${res.status}`,
+    res.status,
+    serverError,
+  )
+}
+
+function saveLocalOrder(submission: ChatOrderSubmission): Order {
   const record: Order = {
     id: `local-${Date.now().toString(36)}`,
     source: 'chat',
