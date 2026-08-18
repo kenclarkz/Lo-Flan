@@ -207,6 +207,14 @@ export async function submitChatOrder(
 
   const base = serverUrl || ''
   const url = `${base}/api/orders`
+
+  if (!base) {
+    console.warn(
+      '[order] No server URL configured — posting to same origin. ' +
+      'If the backend is on a different domain, set NEXT_PUBLIC_SERVER_URL ' +
+      'at build time or in the admin panel.'
+    )
+  }
   console.log(`[order] POST ${url}`, submission)
 
   let res: Response
