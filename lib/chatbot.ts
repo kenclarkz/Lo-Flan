@@ -303,9 +303,19 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
   }
 
   if (state.orderFlow.active && state.orderFlow.step === 'review' && detectsBackIntent(text)) {
+    const jumpTarget = findJumpTarget(text)
+    if (jumpTarget) {
+      state.orderFlow.step = jumpTarget
+      if (jumpTarget === 'product') {
+        state.orderFlow.data = { ...state.orderFlow.data, items: [] }
+      }
+      const reply = getStepPrompt(jumpTarget, state.orderFlow.data)
+      pushHistory(state, text, reply)
+      return { reply, conversationId: id, orderFlow: state.orderFlow }
+    }
     state.orderFlow.step = 'product'
     state.orderFlow.data = { ...state.orderFlow.data, items: [] }
-    const reply = "Let's start over. Which flan(s) would you like? You can select multiple!"
+    const reply = "Let's start over. Which flan(s) would you like?"
     pushHistory(state, text, reply)
     return { reply, conversationId: id, orderFlow: state.orderFlow }
   }
@@ -314,6 +324,9 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
     const jumpTarget = findJumpTarget(text)
     if (jumpTarget) {
       state.orderFlow.step = jumpTarget
+      if (jumpTarget === 'product') {
+        state.orderFlow.data = { ...state.orderFlow.data, items: [] }
+      }
       const reply = getStepPrompt(jumpTarget, state.orderFlow.data)
       pushHistory(state, text, reply)
       return { reply, conversationId: id, orderFlow: state.orderFlow }

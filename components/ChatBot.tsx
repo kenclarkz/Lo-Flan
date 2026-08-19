@@ -364,11 +364,8 @@ export function ChatBot() {
             )}
             {bubbles.map((b, i) => {
               const isLastBubble = i === bubbles.length - 1
-              const flowState = orderFlowRef.current
               const showQuantityButtons = !!b.quantityFor
-              const qtyItemName = showQuantityButtons
-                ? (flowState?.data.items[flowState.currentItemIndex]?.product.name ?? '')
-                : ''
+              const qtyItemName = b.quantityFor ?? ''
 
               return (
               <div key={i}>
