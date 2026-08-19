@@ -535,7 +535,7 @@ export function ChatBot() {
                 <X className="h-4 w-4" />
               </button>
             )}
-            {!isDateStep && !isPhoneStep && (
+            {!isPhoneStep && (
               <>
                 <input
                   value={input}
