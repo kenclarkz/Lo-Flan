@@ -15,10 +15,43 @@ type Bubble = {
   options?: { label: string; value: string }[]
   productSelect?: boolean
   quantityFor?: string
+  dateSelect?: boolean
+  phoneInput?: boolean
 }
 
 const WELCOME =
   "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or delivery — or tell me what you'd like to order."
+
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+const TIME_SLOTS = (() => {
+  const slots: string[] = []
+  for (let h = 8; h <= 20; h++) {
+    for (let m = 0; m < 60; m += 30) {
+      if (h === 20 && m > 0) break
+      const period = h >= 12 ? 'PM' : 'AM'
+      const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+      slots.push(`${h12}:${m.toString().padStart(2, '0')} ${period}`)
+    }
+  }
+  return slots
+})()
+
+function getInitialTimeSlot(): string {
+  const now = new Date()
+  let h = now.getHours()
+  let m = now.getMinutes()
+  if (m > 0 && m <= 30) m = 30
+  else if (m > 30) { m = 0; h++ }
+  if (h < 8) h = 8
+  if (h > 20) h = 20
+  const period = h >= 12 ? 'PM' : 'AM'
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+  return `${h12}:${m.toString().padStart(2, '0')} ${period}`
+}
 
 /**
  * Floating chat bot widget. On the home screen the launcher sits directly
@@ -35,6 +68,10 @@ export function ChatBot() {
   const [busy, setBusy] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
+  const [dateMonth, setDateMonth] = useState(() => new Date().getMonth())
+  const [dateDay, setDateDay] = useState(() => new Date().getDate())
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState(getInitialTimeSlot)
+  const [phoneValue, setPhoneValue] = useState('')
   const conversationId = useRef<string | undefined>(undefined)
   const orderFlowRef = useRef<OrderFlowState | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -78,6 +115,8 @@ export function ChatBot() {
         // Determine what to show on the bot bubble
         const isProductStep = of?.active && of.step === 'product'
         const isItemsQtyStep = of?.active && of.step === 'items_quantity'
+        const isDateStep = of?.active && of.step === 'date'
+        const isPhoneStep = of?.active && of.step === 'phone'
 
         let quantityFor: string | undefined
         if (isItemsQtyStep && of) {
@@ -93,6 +132,8 @@ export function ChatBot() {
             options: undefined,
             productSelect: isProductStep,
             quantityFor,
+            dateSelect: isDateStep,
+            phoneInput: isPhoneStep,
           },
         ])
 
@@ -230,7 +271,22 @@ export function ChatBot() {
     if (e.key === 'Enter') send()
   }
 
+  const handleDateConfirm = () => {
+    const dateStr = `${MONTHS[dateMonth]} ${dateDay} at ${selectedTimeSlot}`
+    send(dateStr)
+  }
+
+  const handlePhoneConfirm = () => {
+    const trimmed = phoneValue.trim()
+    if (trimmed) {
+      send(trimmed)
+      setPhoneValue('')
+    }
+  }
+
   const isOrdering = orderFlowRef.current?.active === true
+  const isDateStep = orderFlowRef.current?.active === true && orderFlowRef.current.step === 'date'
+  const isPhoneStep = orderFlowRef.current?.active === true && orderFlowRef.current.step === 'phone'
 
   return (
     <>
@@ -380,6 +436,67 @@ export function ChatBot() {
                     ))}
                   </div>
                 )}
+                {b.dateSelect && isLastBubble && (
+                  <div className="mt-2 ml-2 space-y-2">
+                    <p className="text-[0.65rem] text-cream/50 ml-1">Select date and time:</p>
+                    <div className="flex gap-2">
+                      <select
+                        value={dateMonth}
+                        onChange={(e) => setDateMonth(Number(e.target.value))}
+                        className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
+                      >
+                        {MONTHS.map((m, i) => (
+                          <option key={m} value={i}>{m}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={dateDay}
+                        onChange={(e) => setDateDay(Number(e.target.value))}
+                        className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
+                      >
+                        {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <select
+                      value={selectedTimeSlot}
+                      onChange={(e) => setSelectedTimeSlot(e.target.value)}
+                      className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
+                    >
+                      {TIME_SLOTS.map((slot) => (
+                        <option key={slot} value={slot}>{slot}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleDateConfirm}
+                      disabled={busy}
+                      className="rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-50"
+                    >
+                      Confirm Date
+                    </button>
+                  </div>
+                )}
+                {b.phoneInput && isLastBubble && (
+                  <div className="mt-2 ml-2 space-y-2">
+                    <p className="text-[0.65rem] text-cream/50 ml-1">Phone number:</p>
+                    <input
+                      type="tel"
+                      value={phoneValue}
+                      onChange={(e) => setPhoneValue(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handlePhoneConfirm() }}
+                      placeholder="(555) 123-4567"
+                      className="w-full max-w-[200px] rounded-lg border border-gold/40 bg-espresso-dark px-3 py-1.5 text-xs text-cream placeholder-cream/30 focus:outline-none focus:border-gold transition-colors"
+                    />
+                    <button
+                      onClick={handlePhoneConfirm}
+                      disabled={busy || !phoneValue.trim()}
+                      className="rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-50"
+                    >
+                      Confirm Phone
+                    </button>
+                  </div>
+                )}
               </div>
               )
             })}
@@ -405,21 +522,25 @@ export function ChatBot() {
                 <X className="h-4 w-4" />
               </button>
             )}
-            <input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={isOrdering ? 'Type your answer…' : 'Ask or place an order…'}
-              className="flex-1 rounded-full bg-espresso-dark border border-cream/15 px-4 py-2.5 text-sm text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
-            />
-            <button
-              onClick={() => send()}
-              disabled={busy || !input.trim()}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold text-espresso transition-all hover:bg-gold-light disabled:opacity-40"
+            {!isDateStep && !isPhoneStep && (
+              <>
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={isOrdering ? 'Type your answer…' : 'Ask or place an order…'}
+                  className="flex-1 rounded-full bg-espresso-dark border border-cream/15 px-4 py-2.5 text-sm text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                />
+                <button
+                  onClick={() => send()}
+                  disabled={busy || !input.trim()}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold text-espresso transition-all hover:bg-gold-light disabled:opacity-40"
               aria-label="Send message"
             >
               <Send className="h-4 w-4" aria-hidden />
             </button>
+              </>
+            )}
           </div>
         </div>
       )}
