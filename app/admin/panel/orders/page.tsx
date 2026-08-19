@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { isAuthed, logout } from '@/lib/admin'
 import {
+  checkServerHealth,
   clearAllOrders,
   fetchOrders,
   getAdminKey,
@@ -118,6 +119,31 @@ export default function OrdersDashboardPage() {
             '1. Deploy the Lo-Flan backend server and note its public URL.\n' +
             '2. Set the ADMIN_API_KEY environment variable on the server.\n' +
             '3. Enter the Server URL and Admin Key above and press "Save connection", then "Load orders".'
+          )
+        }
+        setLoading(false)
+        return
+      }
+
+      // Pre-flight health check to give a more specific error
+      const health = await checkServerHealth(url)
+      if (!health.ok) {
+        let detail = ''
+        if (health.error === 'timeout') {
+          detail = 'The server did not respond in time — it may be overloaded or the tunnel is slow.'
+        } else if (health.error === 'network_error' || health.error === 'unreachable') {
+          detail = 'The server could not be reached at all. Make sure it is running and the ngrok tunnel (if any) is active.'
+        } else {
+          detail = `The server responded with status ${health.status}. Check the server logs.`
+        }
+        if (localOrders.length > 0) {
+          setOrders(localOrders)
+          setLoaded(true)
+          flash(`Server unavailable — showing orders saved locally. ${detail}`)
+        } else {
+          setError(
+            `Could not reach the server at ${url}.\n\n${detail}\n\n` +
+            'Tip: If using ngrok, make sure the tunnel is running and the URL has not expired.'
           )
         }
         setLoading(false)

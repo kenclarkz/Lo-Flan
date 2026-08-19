@@ -119,6 +119,24 @@ async function adminFetch(
   return res
 }
 
+export async function checkServerHealth(serverUrl: string): Promise<{ ok: boolean; status?: number; error?: string }> {
+  const base = serverUrl || ''
+  try {
+    const res = await fetch(`${base}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) })
+    const body = (await res.json()) as { status?: string }
+    return { ok: res.ok && body.status === 'ok', status: res.status }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof TypeError && err.message.includes('fetch')
+        ? 'network_error'
+        : err instanceof DOMException && err.name === 'TimeoutError'
+          ? 'timeout'
+          : 'unreachable',
+    }
+  }
+}
+
 export async function fetchOrders(serverUrl: string, adminKey: string): Promise<Order[]> {
   const res = await adminFetch(serverUrl, adminKey, '/api/orders')
   const body = (await res.json()) as { orders?: Order[] }
