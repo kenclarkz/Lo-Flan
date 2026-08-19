@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { usePathname } from 'next/navigation'
-import { Check, Loader2, MessageCircle, Send, X } from 'lucide-react'
+import { Check, Loader2, Maximize2, Minimize2, MessageCircle, Send, X } from 'lucide-react'
 import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
 import type { OrderFlowState } from '@/lib/orderFlow'
@@ -63,6 +63,7 @@ export function ChatBot() {
   const isHome = pathname === '/'
 
   const [open, setOpen] = useState(false)
+  const [fullscreen, setFullscreen] = useState(false)
   const [bubbles, setBubbles] = useState<Bubble[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
@@ -301,7 +302,7 @@ export function ChatBot() {
         style={isHome ? { opacity: scrolled || open ? 1 : 0, pointerEvents: scrolled || open ? 'auto' : 'none' } : undefined}
       >
         <button
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => { setOpen((o) => !o); setFullscreen(false) }}
           aria-expanded={open}
           aria-label={open ? 'Close chat' : 'Open chat'}
           className={cn(
@@ -320,10 +321,15 @@ export function ChatBot() {
       {open && (
         <div
           className={cn(
-            'fixed z-50 flex flex-col overflow-hidden rounded-2xl border border-cream/15 bg-espresso shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]',
-            isHome
-              ? 'inset-x-4 bottom-[11.5rem] mx-auto h-[58svh] max-h-[440px] max-w-sm'
-              : 'bottom-24 left-6 h-[min(58svh,460px)] w-[min(calc(100vw-2rem),380px)]'
+            'fixed z-50 flex flex-col overflow-hidden bg-espresso transition-all duration-300',
+            fullscreen
+              ? 'inset-0 rounded-none border-0'
+              : 'rounded-2xl border border-cream/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]',
+            !fullscreen && (
+              isHome
+                ? 'inset-x-4 bottom-[11.5rem] mx-auto h-[58svh] max-h-[440px] max-w-sm'
+                : 'bottom-24 left-6 h-[min(58svh,460px)] w-[min(calc(100vw-2rem),380px)]'
+            )
           )}
         >
           <div className="flex items-center gap-3 border-b border-cream/10 bg-cocoa/40 px-4 py-3.5">
@@ -337,8 +343,15 @@ export function ChatBot() {
               </p>
             </div>
             <button
-              onClick={() => setOpen(false)}
+              onClick={() => setFullscreen((f) => !f)}
               className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-full text-cream/50 hover:text-cream transition-colors"
+              aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            </button>
+            <button
+              onClick={() => { setOpen(false); setFullscreen(false) }}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full text-cream/50 hover:text-cream transition-colors"
               aria-label="Close chat"
             >
               <X className="h-4 w-4" />
