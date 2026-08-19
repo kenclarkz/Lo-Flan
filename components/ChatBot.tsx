@@ -296,9 +296,7 @@ export function ChatBot() {
             {bubbles.map((b, i) => {
               const isLastBubble = i === bubbles.length - 1
               const flowState = orderFlowRef.current
-              const showQuantityButtons =
-                b.quantityFor ||
-                (isLastBubble && flowState?.active && flowState.step === 'items_quantity')
+              const showQuantityButtons = !!b.quantityFor
               const qtyItemName = showQuantityButtons
                 ? (flowState?.data.items[flowState.currentItemIndex]?.product.name ?? '')
                 : ''
