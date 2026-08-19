@@ -156,8 +156,8 @@ export function ChatBot() {
             },
           ])
         }
-        // Show cancel option during order flow
-        if (of?.active && of.step !== 'review') {
+        // Show cancel option during order flow (skip steps with inline inputs gated by isLastBubble)
+        if (of?.active && of.step !== 'review' && of.step !== 'phone' && of.step !== 'date') {
           setBubbles((b) => [
             ...b,
             { role: 'bot', text: 'Say "cancel" at any time to cancel your order.', options: undefined },
