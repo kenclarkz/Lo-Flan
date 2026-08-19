@@ -111,6 +111,7 @@ async function adminFetch(
     ...init,
     headers: {
       ...(init?.headers ?? {}),
+      'ngrok-skip-browser-warning': 'true',
       ...adminHeaders(adminKey),
     },
   })
@@ -239,7 +240,10 @@ export async function submitChatOrder(
   try {
     res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+      },
       body: JSON.stringify(submission),
     })
   } catch (err) {

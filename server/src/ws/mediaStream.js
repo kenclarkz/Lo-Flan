@@ -86,11 +86,12 @@ export function handleMediaStream(ws, deps = {}) {
     }
   }
 
-  function recordCall() {
+  async function recordCall() {
     if (recorded) return
     recorded = true
     const body = transcript.join('\n').trim()
-    const record = addOrder({
+    if (!body) return
+    const record = await addOrder({
       source: 'phone',
       phone: callFrom || undefined,
       callSid: callSid || undefined,

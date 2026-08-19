@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: loflan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: loflan
+      POSTGRES_PASSWORD: loflan_dev
+      POSTGRES_DB: loflan_orders
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./src/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+
+volumes:
+  pgdata:

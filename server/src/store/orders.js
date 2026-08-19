@@ -1,73 +1,70 @@
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { query, getPool } from '../db/index.js'
 import { config } from '../config.js'
 import logger from '../utils/logger.js'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const DEFAULT_FILE = path.join(__dirname, '../../data/orders.json')
 
 export const ORDER_STATUSES = ['pending', 'new', 'confirmed', 'fulfilled', 'cancelled']
 
 export const ORDER_SOURCES = ['chat', 'phone']
 
-let cache = null
+/* ------------------------------------------------------------------ */
+/* Column mapping: PostgreSQL snake_case ↔ JavaScript camelCase        */
+/* ------------------------------------------------------------------ */
+
+const TO_JS = {
+  customer_name: 'customerName',
+  call_sid: 'callSid',
+  conversation_id: 'conversationId',
+  delivery_method: 'deliveryMethod',
+  delivery_address: 'deliveryAddress',
+  pickup_date: 'pickupDate',
+  is_order: 'isOrder',
+  created_at: 'createdAt',
+}
+
+const TO_PG = Object.fromEntries(Object.entries(TO_JS).map(([k, v]) => [v, k]))
+
+function rowToOrder(row) {
+  const out = {}
+  for (const [key, value] of Object.entries(row)) {
+    const jsKey = TO_JS[key] ?? key
+    out[jsKey] = value
+  }
+  if (out.items && typeof out.items === 'string') {
+    try { out.items = JSON.parse(out.items) } catch { /* already object */ }
+  }
+  return out
+}
+
+function orderToRow(order) {
+  const out = {}
+  for (const [key, value] of Object.entries(order)) {
+    const pgKey = TO_PG[key] ?? key
+    if (pgKey === 'items' && Array.isArray(value)) {
+      out[pgKey] = JSON.stringify(value)
+    } else {
+      out[pgKey] = value
+    }
+  }
+  return out
+}
 
 function uid() {
   return `ord-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 9)}`
 }
 
-function ordersFile() {
-  return config.ordersFile || DEFAULT_FILE
-}
-
-function load() {
-  if (cache) return cache
-  try {
-    const file = ordersFile()
-    if (fs.existsSync(file)) {
-      const raw = JSON.parse(fs.readFileSync(file, 'utf8'))
-      if (Array.isArray(raw)) cache = raw
-    }
-  } catch (err) {
-    logger.warn('could not read orders file — starting empty', err?.message ?? err)
-  }
-  if (!cache) cache = []
-  return cache
-}
-
-function persist() {
-  try {
-    const file = ordersFile()
-    fs.mkdirSync(path.dirname(file), { recursive: true })
-    fs.writeFileSync(file, JSON.stringify(load(), null, 2))
-  } catch (err) {
-    logger.warn('could not persist orders file', err?.message ?? err)
-  }
-}
+/* ------------------------------------------------------------------ */
+/* Public API — same signatures as the old JSON-file store             */
+/* ------------------------------------------------------------------ */
 
 /**
  * Record a new order (website chatbot) or call (phone receptionist).
  * @param {object} order
- * @param {'chat'|'phone'} order.source
- * @param {string} [order.customerName]
- * @param {string} [order.phone]
- * @param {{name: string, quantity: number}[]} [order.items]
- * @param {string} [order.notes]
- * @param {string} [order.message]
- * @param {string} [order.callSid]
- * @param {string} [order.conversationId]
- * @param {string} [order.transcript]
- * @param {boolean} [order.isOrder]
- * @param {string} [order.deliveryMethod]
- * @param {string} [order.deliveryAddress]
- * @param {string} [order.pickupDate]
- * @param {string} [order.status]
- * @returns {object} the stored record
+ * @returns {Promise<object>} the stored record
  */
-export function addOrder(order) {
-  const record = {
-    id: uid(),
+export async function addOrder(order) {
+  const id = uid()
+  const row = orderToRow({
+    id,
     source: order.source,
     status: ORDER_STATUSES.includes(order.status) ? order.status : 'new',
     createdAt: new Date().toISOString(),
@@ -83,40 +80,47 @@ export function addOrder(order) {
     deliveryMethod: order.deliveryMethod || undefined,
     deliveryAddress: order.deliveryAddress || undefined,
     pickupDate: order.pickupDate || undefined,
+  })
+
+  const keys = []
+  const vals = []
+  const placeholders = []
+  let i = 1
+  for (const [key, value] of Object.entries(row)) {
+    if (value === undefined) continue
+    keys.push(key)
+    vals.push(value)
+    placeholders.push(`$${i++}`)
   }
-  load().unshift(record)
-  persist()
-  return record
+
+  const sql = `INSERT INTO orders (${keys.join(',')}) VALUES (${placeholders.join(',')}) RETURNING *`
+  const { rows } = await query(sql, vals)
+  return rowToOrder(rows[0])
 }
 
 /** @returns {object[]} all orders, newest first */
-export function listOrders() {
-  return [...load()]
+export async function listOrders() {
+  const { rows } = await query('SELECT * FROM orders ORDER BY created_at DESC')
+  return rows.map(rowToOrder)
 }
 
-export function clearOrders() {
-  cache = []
-  persist()
+export async function clearOrders() {
+  await query('TRUNCATE orders')
 }
 
-export function updateOrderStatus(id, status) {
+export async function updateOrderStatus(id, status) {
   if (!ORDER_STATUSES.includes(status)) return null
-  const order = load().find((o) => o.id === id)
-  if (!order) return null
-  order.status = status
-  persist()
-  return order
+  const { rows } = await query('UPDATE orders SET status = $1 WHERE id = $2 RETURNING *', [status, id])
+  return rows[0] ? rowToOrder(rows[0]) : null
 }
 
-export function deleteOrder(id) {
-  const index = load().findIndex((o) => o.id === id)
-  if (index === -1) return false
-  load().splice(index, 1)
-  persist()
-  return true
+export async function deleteOrder(id) {
+  const { rowCount } = await query('DELETE FROM orders WHERE id = $1', [id])
+  return rowCount > 0
 }
 
-/** Test hook — drop the in-memory cache so next read reloads from disk. */
-export function _resetStore() {
-  cache = null
+export async function _resetStore() {
+  if (getPool()) {
+    await query('TRUNCATE orders')
+  }
 }

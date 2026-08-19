@@ -36,7 +36,7 @@ export function createOrdersRouter() {
   /* Public: submit an order (from the website chatbot)              */
   /* -------------------------------------------------------------- */
 
-  router.post('/orders', (req, res) => {
+  router.post('/orders', async (req, res) => {
     const { items, customerName, phone, deliveryMethod, deliveryAddress, pickupDate, notes } = req.body ?? {}
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -46,7 +46,7 @@ export function createOrdersRouter() {
       return res.status(400).json({ error: 'customerName_required' })
     }
 
-    const record = addOrder({
+    const record = await addOrder({
       source: 'chat',
       customerName: customerName.trim(),
       phone: phone || undefined,
@@ -69,32 +69,33 @@ export function createOrdersRouter() {
   /* Admin endpoints                                                 */
   /* -------------------------------------------------------------- */
 
-  router.get('/orders', (_req, res) => {
+  router.get('/orders', async (_req, res) => {
     if (!requireAdmin(_req, res)) return
-    return res.json({ orders: listOrders() })
+    const orders = await listOrders()
+    return res.json({ orders })
   })
 
-  router.post('/orders/clear', (req, res) => {
+  router.post('/orders/clear', async (req, res) => {
     if (!requireAdmin(req, res)) return
-    clearOrders()
+    await clearOrders()
     logger.info('orders cleared by admin')
     return res.json({ ok: true })
   })
 
-  router.post('/orders/:id/status', (req, res) => {
+  router.post('/orders/:id/status', async (req, res) => {
     if (!requireAdmin(req, res)) return
     const { status } = req.body ?? {}
     if (!status) return res.status(400).json({ error: 'status_required' })
-    const order = updateOrderStatus(req.params.id, String(status))
+    const order = await updateOrderStatus(req.params.id, String(status))
     if (!order) {
       return res.status(400).json({ error: 'invalid_status' })
     }
     return res.json({ ok: true, order })
   })
 
-  router.delete('/orders/:id', (req, res) => {
+  router.delete('/orders/:id', async (req, res) => {
     if (!requireAdmin(req, res)) return
-    if (!deleteOrder(req.params.id)) {
+    if (!(await deleteOrder(req.params.id))) {
       return res.status(404).json({ error: 'not_found' })
     }
     return res.json({ ok: true })

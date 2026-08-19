@@ -34,6 +34,9 @@ export const config = {
   // Where recorded orders/calls are persisted (JSON file).
   ordersFile: process.env.ORDERS_FILE ?? '',
 
+  // PostgreSQL connection string (e.g. postgresql://loflan:loflan_dev@localhost:5432/loflan_orders).
+  databaseUrl: process.env.DATABASE_URL ?? '',
+
   greetingMessage: process.env.GREETING_MESSAGE ?? DEFAULT_GREETING,
   unavailableMessage: process.env.UNAVAILABLE_MESSAGE ?? DEFAULT_UNAVAILABLE,
 }

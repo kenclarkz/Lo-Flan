@@ -1,14 +1,19 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import pg from 'pg'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import express from 'express'
 
-const tmpFile = path.join(os.tmpdir(), `orders-route-${Date.now()}-${Math.random().toString(36).slice(2)}.json`)
-process.env.ORDERS_FILE = tmpFile
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+process.env.DATABASE_URL = 'postgresql://loflan:loflan_dev@localhost:5432/loflan_orders_test'
 process.env.ADMIN_API_KEY = 'test-admin-key'
+
+const schema = fs.readFileSync(path.join(__dirname, '../src/db/schema.sql'), 'utf8')
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 
 const { createOrdersRouter } = await import('../src/routes/orders.js')
 const { _resetStore } = await import('../src/store/orders.js')
@@ -17,7 +22,8 @@ let server
 let baseUrl
 
 before(async () => {
-  _resetStore()
+  await pool.query(schema)
+  await _resetStore()
   const app = express()
   app.use(express.json())
   app.use('/api', createOrdersRouter())
@@ -27,13 +33,9 @@ before(async () => {
   baseUrl = `http://127.0.0.1:${port}`
 })
 
-after(() => {
+after(async () => {
   server?.close()
-  try {
-    fs.unlinkSync(tmpFile)
-  } catch {
-    /* already gone */
-  }
+  await pool.end()
 })
 
 test('GET /api/orders requires the admin key', async () => {
@@ -53,9 +55,8 @@ test('POST /api/orders/clear requires the admin key', async () => {
 })
 
 test('POST /api/orders/:id/status updates and rejects bad statuses', async () => {
-  // Seed directly through the store for a stable id.
   const { addOrder } = await import('../src/store/orders.js')
-  const order = addOrder({ source: 'chat', items: [{ name: 'Original', quantity: 1 }] })
+  const order = await addOrder({ source: 'chat', items: [{ name: 'Original', quantity: 1 }] })
 
   const good = await fetch(`${baseUrl}/api/orders/${order.id}/status`, {
     method: 'POST',
@@ -74,7 +75,7 @@ test('POST /api/orders/:id/status updates and rejects bad statuses', async () =>
 
 test('DELETE /api/orders/:id removes a record', async () => {
   const { addOrder } = await import('../src/store/orders.js')
-  const order = addOrder({ source: 'phone', callSid: 'CA-remove' })
+  const order = await addOrder({ source: 'phone', callSid: 'CA-remove' })
   const res = await fetch(`${baseUrl}/api/orders/${order.id}`, {
     method: 'DELETE',
     headers: { 'x-admin-key': 'test-admin-key' },

@@ -1,34 +1,31 @@
 import { test, before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import pg from 'pg'
 import fs from 'node:fs'
-import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { WebSocket, WebSocketServer } from 'ws'
 import { handleMediaStream, looksLikeOrder } from '../src/ws/mediaStream.js'
 
-const tmpOrdersFile = path.join(os.tmpdir(), `orders-ms-${Date.now()}-${Math.random().toString(36).slice(2)}.json`)
-process.env.ORDERS_FILE = tmpOrdersFile
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+process.env.DATABASE_URL = 'postgresql://loflan:loflan_dev@localhost:5432/loflan_orders_test'
+
+const schema = fs.readFileSync(path.join(__dirname, '../src/db/schema.sql'), 'utf8')
+const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 
 const { _resetStore, listOrders } = await import('../src/store/orders.js')
 
-after(() => {
-  try {
-    fs.unlinkSync(tmpOrdersFile)
-  } catch {
-    /* already gone */
-  }
-})
-
 const SILENCE_PAYLOAD = Buffer.alloc(160, 0xff).toString('base64')
 
-function waitFor(fn, timeoutMs = 2000) {
+async function waitFor(fn, timeoutMs = 2000) {
   const start = Date.now()
   return new Promise((resolve, reject) => {
-    const tick = () => {
+    const tick = async () => {
       let v
       try {
-        v = fn()
+        v = await fn()
       } catch {
         /* keep retrying */
       }
@@ -61,6 +58,9 @@ let wss
 let factory
 
 before(async () => {
+  await pool.query(schema)
+  await _resetStore()
+
   server = http.createServer()
   wss = new WebSocketServer({ server, path: '/media-stream' })
 
@@ -89,13 +89,10 @@ before(async () => {
   await new Promise((resolve) => server.listen(0, resolve))
 })
 
-after(() => {
+after(async () => {
   wss?.close()
   server?.close()
-})
-
-before(() => {
-  _resetStore()
+  await pool.end()
 })
 
 function connectClient() {
@@ -204,7 +201,7 @@ test('bridge closes the AI session on stop', async () => {
 })
 
 test('bridge records a phone call with transcript and flags orders', async () => {
-  const before = listOrders().length
+  const beforeCount = (await listOrders()).length
   const { ws } = await connectClient()
   try {
     ws.send(
@@ -217,9 +214,10 @@ test('bridge records a phone call with transcript and flags orders', async () =>
     session.callbacks.onUserTranscript('Hi, I would like to order two flans')
     session.callbacks.onAgentTranscript('Great, which flavor would you like?')
     ws.send(JSON.stringify({ event: 'stop' }))
-    await waitFor(() => listOrders().length === before + 1)
+    await waitFor(async () => (await listOrders()).length === beforeCount + 1)
 
-    const record = listOrders()[0]
+    const orders = await listOrders()
+    const record = orders[0]
     assert.equal(record.source, 'phone')
     assert.equal(record.callSid, 'call6')
     assert.equal(record.phone, '+18055550146')

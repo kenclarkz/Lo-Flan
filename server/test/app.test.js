@@ -3,7 +3,8 @@ import assert from 'node:assert/strict'
 import http from 'node:http'
 
 // Ensure the fallback path is exercised regardless of CI environment.
-delete process.env.GEMINI_API_KEY
+// Set to empty string BEFORE dotenv/config loads .env in config.js.
+process.env.GEMINI_API_KEY = ''
 
 let server
 let baseUrl
