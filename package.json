@@ -8,10 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit",
-    "receptionist:dev": "npm --prefix server run dev",
-    "receptionist:start": "npm --prefix server run start",
-    "receptionist:test": "npm --prefix server test"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@gsap/react": "2.1.1",

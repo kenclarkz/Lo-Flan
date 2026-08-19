@@ -1,14 +1,6 @@
 /** @type {import('next').NextConfig} */
 const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? '/Lo-Flan').replace(/\/+$/, '')
 
-if (!process.env.NEXT_PUBLIC_SERVER_URL) {
-  console.warn(
-    '\n⚠  NEXT_PUBLIC_SERVER_URL is not set.\n' +
-    '   Chat orders will POST to the same origin (no backend on GitHub Pages).\n' +
-    '   Set it as a repository secret → Settings → Secrets and variables → Actions.\n'
-  )
-}
-
 const nextConfig = {
   output: 'export',
   trailingSlash: true,

@@ -6,12 +6,11 @@ import Link from 'next/link'
 import {
   ArrowLeft,
   Check,
-  LineChart,
   Facebook,
+  LineChart,
   Loader2,
   Lock,
   LogOut,
-  MessageCircle,
   MonitorPlay,
   RotateCcw,
   Save,
@@ -264,7 +263,7 @@ export default function AdminPanelPage() {
         )}
 
         {/* Section navigation */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
           <Link
             href="/admin/panel"
             className="card-surface rounded-2xl p-5 sm:p-6 group transition-all duration-300 hover:border-gold/40"
@@ -296,24 +295,6 @@ export default function AdminPanelPage() {
             <p className="text-sm text-cream/50">
               Ingredients, variations, batch &amp; slice calculators, expenses,
               profit and a full dashboard.
-            </p>
-          </Link>
-          <Link
-            href="/admin/panel/orders"
-            className="card-surface rounded-2xl p-5 sm:p-6 group transition-all duration-300 hover:border-gold/40"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/10 border border-gold/30">
-                <MessageCircle className="w-5 h-5 text-gold" />
-              </span>
-              <h2 className="display text-xl">Orders &amp; Chat</h2>
-              <span className="rounded-full bg-gold/15 border border-gold/40 px-2.5 py-0.5 text-[0.6rem] uppercase tracking-[0.18em] text-gold">
-                New
-              </span>
-            </div>
-            <p className="text-sm text-cream/50">
-              Orders taken by the chat bot and calls answered by the AI
-              receptionist — live from the backend.
             </p>
           </Link>
         </div>
