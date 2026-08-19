@@ -123,7 +123,11 @@ async function adminFetch(
 export async function checkServerHealth(serverUrl: string): Promise<{ ok: boolean; status?: number; error?: string }> {
   const base = serverUrl || ''
   try {
-    const res = await fetch(`${base}/health`, { method: 'GET', signal: AbortSignal.timeout(5000) })
+    const res = await fetch(`${base}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+    })
     const body = (await res.json()) as { status?: string }
     return { ok: res.ok && body.status === 'ok', status: res.status }
   } catch (err) {
