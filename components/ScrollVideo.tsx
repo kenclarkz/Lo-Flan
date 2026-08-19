@@ -5,7 +5,6 @@ import Image from 'next/image'
 import { asset } from '@/lib/paths'
 import { cn } from '@/lib/utils'
 import { getScrollSelection, getVideoBlob } from '@/lib/admin'
-import { OrderNowButton } from '@/components/OrderNowButton'
 
 const SCRUB_VH = 250
 
@@ -316,8 +315,7 @@ export default function ScrollVideo() {
         </div>
       </div>
 
-      {/* Big "Order Now" CTA over the video — opens Messenger to order */}
-      <OrderNowButton visible={scrolled} />
+
     </>
   )
 }
