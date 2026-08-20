@@ -33,6 +33,7 @@ html.lenis body {
 body {
   @apply bg-espresso text-cream font-sans antialiased;
   overscroll-behavior-y: none;
+  touch-action: manipulation;
   text-rendering: optimizeLegibility;
 }
 
