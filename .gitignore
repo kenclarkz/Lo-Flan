@@ -33,3 +33,9 @@ server/data
 # unrelated demo folder (kept out of the Flan site repo)
 /skate-demo
 /Project
+
+# capacitor
+/ios/
+/android/
+/electron/
+ capacitor.config.ts.bak
