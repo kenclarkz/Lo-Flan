@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description:
     'A luxury handmade flan bakery. Cinematic storytelling, handcrafted desserts and unforgettable moments — made fresh from simple ingredients.',
   keywords: ['flan', 'bakery', 'caramel flan', 'handmade dessert', 'luxury bakery'],
-  icons: { icon: asset('/assets/brand/logo.png') },
+  icons: { icon: asset('/assets/brand/logo.png'), apple: asset('/assets/brand/logo.png') },
   openGraph: {
     title: "Lo's Flan — The Journey of a Perfect Flan",
     description:
@@ -39,6 +39,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-espresso">
       <head>
+        <link rel="manifest" href={asset('/manifest.json')} />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Lo's Flan" />
+        <link rel="apple-touch-icon" href={asset('/assets/brand/logo.png')} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -47,6 +52,12 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-espresso text-cream">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}",
+          }}
+        />
         <SmoothScroll />
         <div className="grain" aria-hidden />
         {children}

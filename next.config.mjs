@@ -1,7 +1,10 @@
 /** @type {import('next').NextConfig} */
-const basePath = (process.env.NEXT_PUBLIC_BASE_PATH ?? '/Lo-Flan').replace(/\/+$/, '')
+const isApp = process.env.BUILD_TARGET === 'app'
+const basePath = isApp
+  ? ''
+  : (process.env.NEXT_PUBLIC_BASE_PATH ?? '/Lo-Flan').replace(/\/+$/, '')
 
-if (!process.env.NEXT_PUBLIC_SERVER_URL) {
+if (!isApp && !process.env.NEXT_PUBLIC_SERVER_URL) {
   console.warn(
     '\n⚠  NEXT_PUBLIC_SERVER_URL is not set.\n' +
     '   Chat orders will POST to the same origin (no backend on GitHub Pages).\n' +
@@ -12,8 +15,8 @@ if (!process.env.NEXT_PUBLIC_SERVER_URL) {
 const nextConfig = {
   output: 'export',
   trailingSlash: true,
-  basePath,
-  assetPrefix: `${basePath}/`,
+  basePath: basePath || undefined,
+  assetPrefix: basePath ? `${basePath}/` : undefined,
   reactStrictMode: false,
   images: {
     unoptimized: true,
