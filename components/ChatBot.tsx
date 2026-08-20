@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Check, Loader2, Maximize2, Minimize2, MessageCircle, Send, X } from 'lucide-react'
 import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
+import { setChatOpen } from '@/lib/chatState'
 import type { OrderFlowState } from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
 import { menu, formatPrice } from '@/data/products'
@@ -76,6 +77,11 @@ export function ChatBot() {
   const conversationId = useRef<string | undefined>(undefined)
   const orderFlowRef = useRef<OrderFlowState | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setChatOpen(open)
+    return () => setChatOpen(false)
+  }, [open])
 
   // Fade the home-screen launcher in with the scrolling video CTA.
   useEffect(() => {
