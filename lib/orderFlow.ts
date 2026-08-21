@@ -462,7 +462,6 @@ function processItemsQuantity(text: string, data: OrderData, currentItemIndex: n
   // All items processed — move to date step
   return {
     reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick your order up at the bakery?\n\nYou can say something like "this Saturday" or "August 20".`,
-    reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick them up or have them delivered?\n\nFlans are made fresh when ordered, so we need at least ${MIN_LEAD_DAYS} days' notice. You can say something like "this Saturday" or "August 20".`,
     nextStep: 'date',
     needsInput: true,
   }
@@ -479,6 +478,12 @@ function processDate(text: string, data: OrderData): StepResult {
     }
   }
   if (trimmed.length < 2) {
+    return {
+      reply: 'What date works for you? You can say something like "this Saturday" or "August 20".',
+      nextStep: 'date',
+      needsInput: true,
+    }
+  }
   const parsed = parseOrderDate(trimmed)
   if (parsed && isOrderDateTooSoon(parsed)) {
     const min = getMinOrderDate()
@@ -490,57 +495,9 @@ function processDate(text: string, data: OrderData): StepResult {
   }
   const itemSummary = data.items.map((it) => `${it.quantity}× ${it.product.name}`).join(', ')
   return {
-    reply: `Sounds good — ${trimmed}. For your order (${itemSummary}), would you like pickup or delivery?`,
-    nextStep: 'delivery',
-    options: [
-      { label: 'Pickup', value: 'pickup' },
-      { label: 'Delivery', value: 'delivery' },
-    ],
-    needsInput: true,
-  }
-}
-
-function processDelivery(text: string, data: OrderData): StepResult {
-  const method = parseDeliveryMethod(text)
-  if (!method) {
-    return {
-      reply: 'Would you like to pick up your order or have it delivered?',
-      nextStep: 'delivery',
-      options: [
-        { label: 'Pickup', value: 'pickup' },
-        { label: 'Delivery', value: 'delivery' },
-      ],
-      needsInput: true,
-    }
-  }
-  if (method === 'delivery') {
-    return {
-      reply: 'Great — delivery it is! What\'s the delivery address?',
-      nextStep: 'delivery_info',
-      needsInput: true,
-    }
-  }
-  return {
-    reply: 'Pickup works! Now I just need your name.',
-    nextStep: 'name',
-    needsInput: true,
-  }
-}
-
-function processDeliveryInfo(text: string, data: OrderData): StepResult {
-  const addr = text.trim()
-  if (addr.length < 3) {
-    return {
-      reply: 'What date works for you? You can say something like "this Saturday" or "August 20".',
-      nextStep: 'date',
-      needsInput: true,
-    }
-  }
-  const itemSummary = data.items.map((it) => `${it.quantity}× ${it.product.name}`).join(', ')
-  return {
     reply: `Sounds good — ${trimmed}. Your order (${itemSummary}) will be ready for pickup at the bakery. Now I just need your name.`,
     nextStep: 'name',
-    needsInput: true,
+    needsInput: false,
   }
 }
 
