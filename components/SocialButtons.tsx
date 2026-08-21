@@ -5,14 +5,17 @@ import { usePathname } from 'next/navigation'
 import { Facebook, Instagram } from 'lucide-react'
 import { site } from '@/data/site'
 import { getSocialLink } from '@/lib/admin'
+import { onChatOpenChange } from '@/lib/chatState'
 import { cn } from '@/lib/utils'
 
 /**
- * Small circular Instagram & Facebook buttons pinned to the bottom-middle of
- * the viewport, directly under the chat box. Links are modular: an admin can
- * override them in the control panel (stored in localStorage) and they fall
- * back to the defaults in `data/site.ts`. On the homepage they fade in with
- * the chat CTA once the visitor starts scrolling.
+ * Small circular Instagram & Facebook buttons pinned to the bottom-right of
+ * the viewport, clear of the chat CTA (bottom-centre on the homepage,
+ * bottom-left everywhere else). Links are modular: an admin can override them
+ * in the control panel (stored in localStorage) and they fall back to the
+ * defaults in `data/site.ts`. On the homepage they fade in with the chat CTA
+ * once the visitor starts scrolling, and they tuck away while the chat box
+ * is open.
  */
 export function SocialButtons() {
   const pathname = usePathname()
@@ -23,6 +26,7 @@ export function SocialButtons() {
     facebook: site.facebook,
   })
   const [scrolled, setScrolled] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     setLinks({
@@ -40,12 +44,17 @@ export function SocialButtons() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isHome])
 
-  const visible = !isHome || scrolled
+  // Tuck away while the chat box is open so nothing fights for space.
+  useEffect(() => {
+    return onChatOpenChange(setChatOpen)
+  }, [])
+
+  const visible = (!isHome || scrolled) && !chatOpen
 
   return (
     <div
       className={cn(
-        'fixed inset-x-0 bottom-6 z-40 flex items-center justify-center gap-3 px-6 transition-opacity duration-700 sm:bottom-8',
+        'fixed bottom-20 right-6 z-40 flex flex-col items-center gap-3 transition-opacity duration-700',
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none'
       )}
     >
