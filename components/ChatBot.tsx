@@ -13,7 +13,6 @@ import {
   MIN_LEAD_DAYS,
   ORDER_MONTHS,
   resolveOrderDate,
-  type OrderFlowState,
 } from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
 import { menu, formatPrice } from '@/data/products'
