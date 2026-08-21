@@ -55,9 +55,9 @@ function getInitialTimeSlot(): string {
 }
 
 /**
- * Floating chat bot widget. On the home screen the launcher sits directly
- * above the big "Order Now" (Messenger) button; on every other page it docks
- * to the bottom-left corner.
+ * Floating chat bot widget. The launcher docks to the bottom of the viewport
+ * (centered on the home screen, bottom-left everywhere else) and the panel
+ * sits directly above it so there is no dead space underneath.
  */
 export function ChatBot() {
   const pathname = usePathname()
@@ -302,7 +302,7 @@ export function ChatBot() {
         className={cn(
           'fixed z-40 transition-opacity duration-700',
           isHome
-            ? 'inset-x-0 bottom-[7.5rem] flex justify-center px-6'
+            ? 'inset-x-0 bottom-6 flex justify-center px-6'
             : 'bottom-6 left-6'
         )}
         style={isHome ? { opacity: scrolled || open ? 1 : 0, pointerEvents: scrolled || open ? 'auto' : 'none' } : undefined}
@@ -333,8 +333,8 @@ export function ChatBot() {
               : 'rounded-2xl border border-cream/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]',
             !fullscreen && (
               isHome
-                ? 'inset-x-4 bottom-[11.5rem] mx-auto h-[58svh] max-h-[440px] max-w-sm'
-                : 'bottom-24 left-6 h-[min(58svh,460px)] w-[min(calc(100vw-2rem),380px)]'
+                ? 'inset-x-4 bottom-24 mx-auto h-[min(72svh,560px)] max-w-sm'
+                : 'bottom-24 left-6 h-[min(72svh,560px)] w-[min(calc(100vw-2rem),380px)]'
             )
           )}
         >
