@@ -8,6 +8,7 @@ import {
   Check,
   LineChart,
   Facebook,
+  Instagram,
   Loader2,
   Lock,
   LogOut,
@@ -30,8 +31,11 @@ import {
   logout,
   saveVideoBlob,
   setMessengerLink,
+  getSocialLink,
   setScrollSelection,
+  setSocialLink,
   type ScrollSelection,
+  type SocialPlatform,
   type VideoMeta,
 } from '@/lib/admin'
 import { cn } from '@/lib/utils'
@@ -112,11 +116,15 @@ export default function AdminPanelPage() {
   const [uploading, setUploading] = useState(false)
   const [notice, setNotice] = useState('')
   const [messenger, setMessenger] = useState('')
+  const [instagram, setInstagram] = useState('')
+  const [facebook, setFacebook] = useState('')
 
   const refresh = useCallback(() => {
     setLibrary(getLibrary())
     setSelection(getScrollSelection())
     setMessenger(getMessengerLink() ?? '')
+    setInstagram(getSocialLink('instagram') ?? '')
+    setFacebook(getSocialLink('facebook') ?? '')
   }, [])
 
   useEffect(() => {
@@ -216,6 +224,18 @@ export default function AdminPanelPage() {
       messenger.trim()
         ? 'Messenger link updated.'
         : 'Messenger link cleared — using the default.'
+    )
+  }
+
+  const saveSocialLink = (platform: SocialPlatform) => {
+    const value = platform === 'instagram' ? instagram : facebook
+    setSocialLink(platform, value)
+    if (platform === 'instagram') setInstagram(getSocialLink('instagram') ?? '')
+    else setFacebook(getSocialLink('facebook') ?? '')
+    flash(
+      value.trim()
+        ? `${platform === 'instagram' ? 'Instagram' : 'Facebook'} link updated.`
+        : `${platform === 'instagram' ? 'Instagram' : 'Facebook'} link cleared — using the default.`
     )
   }
 
@@ -381,6 +401,73 @@ export default function AdminPanelPage() {
               <Save className="w-4 h-4" />
               Save link
             </button>
+          </div>
+        </section>
+
+        {/* Social buttons — Instagram & Facebook */}
+        <section className="card-surface rounded-2xl p-6 sm:p-8 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Instagram className="w-5 h-5 text-gold flex-shrink-0" />
+            <h2 className="eyebrow">Social buttons</h2>
+          </div>
+          <p className="text-sm text-cream/60 mb-5">
+            Links for the small Instagram &amp; Facebook circles shown at the
+            bottom middle of every page, under the chat box. Leave empty to use
+            the defaults.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label
+                htmlFor="social-instagram"
+                className="flex items-center gap-2 text-xs text-cream/50 uppercase tracking-wider mb-2"
+              >
+                <Instagram className="w-3.5 h-3.5 text-gold" />
+                Instagram
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  id="social-instagram"
+                  type="url"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder="https://instagram.com/yourpage"
+                  className="flex-1 px-4 py-3 bg-espresso-dark border border-cream/15 rounded-lg text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                />
+                <button
+                  onClick={() => saveSocialLink('instagram')}
+                  className="btn-primary sm:w-auto"
+                >
+                  <Save className="w-4 h-4" />
+                  Save
+                </button>
+              </div>
+            </div>
+            <div>
+              <label
+                htmlFor="social-facebook"
+                className="flex items-center gap-2 text-xs text-cream/50 uppercase tracking-wider mb-2"
+              >
+                <Facebook className="w-3.5 h-3.5 text-gold" />
+                Facebook
+              </label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  id="social-facebook"
+                  type="url"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  placeholder="https://facebook.com/yourpage"
+                  className="flex-1 px-4 py-3 bg-espresso-dark border border-cream/15 rounded-lg text-cream placeholder-cream/30 focus:outline-none focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                />
+                <button
+                  onClick={() => saveSocialLink('facebook')}
+                  className="btn-primary sm:w-auto"
+                >
+                  <Save className="w-4 h-4" />
+                  Save
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 
