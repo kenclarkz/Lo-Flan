@@ -6,7 +6,14 @@ import { Check, Loader2, Maximize2, Minimize2, MessageCircle, Send, X } from 'lu
 import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
 import { setChatOpen } from '@/lib/chatState'
-import type { OrderFlowState } from '@/lib/orderFlow'
+import {
+  getMinOrderDate,
+  isOrderDateTooSoon,
+  MIN_LEAD_DAYS,
+  ORDER_MONTHS,
+  resolveOrderDate,
+  type OrderFlowState,
+} from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
 import { menu, formatPrice } from '@/data/products'
 
@@ -22,11 +29,6 @@ type Bubble = {
 
 const WELCOME =
   "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or delivery — or tell me what you'd like to order."
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
 
 const TIME_SLOTS = (() => {
   const slots: string[] = []
@@ -70,8 +72,8 @@ export function ChatBot() {
   const [busy, setBusy] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
-  const [dateMonth, setDateMonth] = useState(() => new Date().getMonth())
-  const [dateDay, setDateDay] = useState(() => new Date().getDate())
+  const [dateMonth, setDateMonth] = useState(() => getMinOrderDate().getMonth())
+  const [dateDay, setDateDay] = useState(() => getMinOrderDate().getDate())
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(getInitialTimeSlot)
   const [phoneValue, setPhoneValue] = useState('')
   const conversationId = useRef<string | undefined>(undefined)
@@ -279,7 +281,7 @@ export function ChatBot() {
   }
 
   const handleDateConfirm = () => {
-    const dateStr = `${MONTHS[dateMonth]} ${dateDay} at ${selectedTimeSlot}`
+    const dateStr = `${ORDER_MONTHS[dateMonth]} ${dateDay} at ${selectedTimeSlot}`
     send(dateStr)
   }
 
@@ -294,6 +296,15 @@ export function ChatBot() {
   const isOrdering = orderFlowRef.current?.active === true
   const isDateStep = orderFlowRef.current?.active === true && orderFlowRef.current.step === 'date'
   const isPhoneStep = orderFlowRef.current?.active === true && orderFlowRef.current.step === 'phone'
+
+  // Flans are made fresh when ordered — today and tomorrow are blocked.
+  const minOrderDate = getMinOrderDate()
+  const selectedDate = resolveOrderDate(dateMonth, dateDay)
+  const dateBlocked = selectedDate !== null && isOrderDateTooSoon(selectedDate)
+  const dayOptionDisabled = (day: number) => {
+    const optionDate = resolveOrderDate(dateMonth, day)
+    return optionDate !== null && isOrderDateTooSoon(optionDate)
+  }
 
   return (
     <>
@@ -454,14 +465,16 @@ export function ChatBot() {
                 )}
                 {b.dateSelect && isLastBubble && (
                   <div className="mt-2 ml-2 space-y-2">
-                    <p className="text-[0.65rem] text-cream/50 ml-1">Select date and time:</p>
+                    <p className="text-[0.65rem] text-cream/50 ml-1">
+                      Select date and time (at least {MIN_LEAD_DAYS} days ahead):
+                    </p>
                     <div className="flex gap-2">
                       <select
                         value={dateMonth}
                         onChange={(e) => setDateMonth(Number(e.target.value))}
                         className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
                       >
-                        {MONTHS.map((m, i) => (
+                        {ORDER_MONTHS.map((m, i) => (
                           <option key={m} value={i}>{m}</option>
                         ))}
                       </select>
@@ -471,7 +484,7 @@ export function ChatBot() {
                         className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
                       >
                         {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                          <option key={d} value={d}>{d}</option>
+                          <option key={d} value={d} disabled={dayOptionDisabled(d)}>{d}</option>
                         ))}
                       </select>
                     </div>
@@ -484,9 +497,16 @@ export function ChatBot() {
                         <option key={slot} value={slot}>{slot}</option>
                       ))}
                     </select>
+                    {dateBlocked && (
+                      <p className="text-[0.65rem] text-red-300/80 ml-1">
+                        Made fresh to order — same-day and next-day aren&apos;t available.
+                        Earliest is {ORDER_MONTHS[minOrderDate.getMonth()]} {minOrderDate.getDate()}.
+                      </p>
+                    )}
                     <button
                       onClick={handleDateConfirm}
-                      disabled={busy}
+                      disabled={busy || dateBlocked}
+                      title={dateBlocked ? `Earliest available is ${ORDER_MONTHS[minOrderDate.getMonth()]} ${minOrderDate.getDate()}` : undefined}
                       className="rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-50"
                     >
                       Confirm Date
