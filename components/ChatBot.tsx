@@ -77,6 +77,9 @@ export function ChatBot() {
   const conversationId = useRef<string | undefined>(undefined)
   const orderFlowRef = useRef<OrderFlowState | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const lastBubbleRef = useRef<HTMLDivElement>(null)
+  const pinnedToBottomRef = useRef(true)
+  const expectedScrollRef = useRef<number | null>(null)
 
   useEffect(() => {
     setChatOpen(open)
@@ -92,14 +95,54 @@ export function ChatBot() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isHome])
 
+  // Follow new messages only while the reader is already near the bottom, and
+  // reveal the start of a long reply instead of jumping past it to the very
+  // bottom of the list.
   useEffect(() => {
-    if (!listRef.current) return
-    listRef.current.scrollTop = listRef.current.scrollHeight
-  }, [bubbles, busy, open])
+    const container = listRef.current
+    if (!container) return
+    if (!pinnedToBottomRef.current) return
+
+    const target = lastBubbleRef.current ?? (container.lastElementChild as HTMLElement | null)
+    if (!target) return
+
+    const delta = target.getBoundingClientRect().top - container.getBoundingClientRect().top
+    if (target.offsetHeight > container.clientHeight - 16) {
+      // The new message is taller than the viewport: show its beginning so the
+      // reader isn't dropped at its tail and forced to scroll back up.
+      const next = Math.max(0, container.scrollTop + delta - 12)
+      expectedScrollRef.current = next
+      container.scrollTop = next
+    } else {
+      expectedScrollRef.current = container.scrollHeight
+      container.scrollTop = container.scrollHeight
+    }
+  }, [bubbles, busy])
+
+  // Reopening the panel always lands on the latest message.
+  useEffect(() => {
+    if (!open) return
+    pinnedToBottomRef.current = true
+    expectedScrollRef.current = null
+    const container = listRef.current
+    if (container) container.scrollTop = container.scrollHeight
+  }, [open])
+
+  const handleListScroll = useCallback(() => {
+    const el = listRef.current
+    if (!el) return
+    const expected = expectedScrollRef.current
+    if (expected !== null) {
+      expectedScrollRef.current = null
+      if (Math.abs(el.scrollTop - expected) < 2) return
+    }
+    pinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
+  }, [])
 
   const send = useCallback(async (textOverride?: string) => {
     const text = (textOverride ?? input).trim()
     if (!text || busy) return
+    pinnedToBottomRef.current = true
     setBubbles((b) => [...b, { role: 'user', text }])
     if (!textOverride) setInput('')
     setBusy(true)
@@ -364,7 +407,7 @@ export function ChatBot() {
             </button>
           </div>
 
-          <div ref={listRef} data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div ref={listRef} onScroll={handleListScroll} data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {bubbles.length === 0 && (
               <Bubble role="bot" text={WELCOME} />
             )}
@@ -374,7 +417,7 @@ export function ChatBot() {
               const qtyItemName = b.quantityFor ?? ''
 
               return (
-              <div key={i}>
+              <div key={i} ref={i === bubbles.length - 1 ? lastBubbleRef : undefined}>
                 <Bubble role={b.role} text={b.text} />
                 {b.productSelect && (
                   <div className="mt-2 ml-2 space-y-1.5">
