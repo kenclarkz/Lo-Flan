@@ -332,7 +332,7 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
       return { reply, conversationId: id, orderFlow: state.orderFlow }
     }
     // Go back one step
-    const steps: OrderStep[] = ['product', 'items_quantity', 'date', 'delivery', 'delivery_info', 'name', 'phone', 'review']
+    const steps: OrderStep[] = ['product', 'items_quantity', 'date', 'name', 'phone', 'review']
     const idx = steps.indexOf(state.orderFlow.step)
     if (idx > 0) {
       state.orderFlow.step = steps[idx - 1]
@@ -406,8 +406,6 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
         data: {
           items: [{ product: bestProduct.product, quantity: 1 }],
           date: '',
-          deliveryMethod: '',
-          deliveryAddress: '',
           customerName: '',
           phone: '',
         },
@@ -438,8 +436,6 @@ export function getLocalChatReply(message: string, conversationId?: string): Loc
         data: {
           items: [],
           date: '',
-          deliveryMethod: '',
-          deliveryAddress: '',
           customerName: '',
           phone: '',
         },
@@ -490,11 +486,7 @@ function getStepPrompt(step: OrderStep, data: OrderData): string {
     case 'items_quantity':
       return 'How many would you like?'
     case 'date':
-      return 'What date works for you?'
-    case 'delivery':
-      return 'Pickup or delivery?'
-    case 'delivery_info':
-      return "What's the delivery address?"
+      return 'What date works for you? We are pickup-only — your order will be ready at the bakery.'
     case 'name':
       return "What's your name?"
     case 'phone':
@@ -522,15 +514,6 @@ function updateOrderData(data: OrderData, step: OrderStep, text: string, current
     }
     case 'date':
       data.date = text.trim()
-      break
-    case 'delivery': {
-      const lower = text.toLowerCase().trim()
-      if (/pick\s*up|pickup|collect|in[\s-]store/.test(lower)) data.deliveryMethod = 'pickup'
-      else if (/deliver|delivery|ship|bring/.test(lower)) data.deliveryMethod = 'delivery'
-      break
-    }
-    case 'delivery_info':
-      data.deliveryAddress = text.trim()
       break
     case 'name':
       data.customerName = text.trim()

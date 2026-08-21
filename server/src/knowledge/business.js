@@ -65,9 +65,9 @@ export const business = {
     },
   ],
   ordering: {
-    current: 'Order through the website chat bot, or by phone call — pickup at the bakery or local delivery in Santa Barbara.',
+    current: 'Order through the website chat bot, or by phone call — pickup at the bakery only (no delivery available).',
     pickup: 'Pickup is available at the bakery during business hours.',
-    delivery: 'Local delivery is available in Santa Barbara — ask for details when you order.',
+    delivery: 'Delivery is not offered — pickup at the bakery only.',
     leadTime: 'Orders are best placed at least a day in advance.',
   },
   order: {
@@ -129,7 +129,8 @@ export function buildSystemInstruction(overrides = {}) {
     '- Answer questions using ONLY the facts above.',
     '- NEVER invent or guess prices, flavors, menu items, availability, lead times, or any business policy beyond the menu and facts above.',
     '- If the caller asks about anything you do not know, say you do not have that information yet and that the owner will follow up with them.',
-    '- If the caller wants to place an order, help them: collect the flavor, quantity (whole flans and/or slices), pickup or delivery preference, and a call-back name or number. Then confirm the order and total, and say the owner will follow up to confirm.',
+    '- If the caller wants to place an order, help them: collect the flavor, quantity (whole flans and/or slices), pickup date preference, and a call-back name or number. Then confirm the order and total, and say the owner will follow up to confirm.',
+    '- Delivery is NOT available. If the caller asks about or requests delivery or shipping, politely explain that orders are pickup at the bakery only.',
     '- If the caller asks whether you are a robot or AI, be honest and friendly: say yes, you are the AI receptionist, and that the owner will follow up on anything that needs a human.',
     '- If you do not understand, politely ask them to repeat or clarify.',
     '- Keep responses short, conversational, and natural for spoken voice. No lists, no markdown, no emoji.',

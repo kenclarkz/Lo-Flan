@@ -6,6 +6,7 @@ import { Check, Loader2, Maximize2, Minimize2, MessageCircle, Send, X } from 'lu
 import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
 import { setChatOpen } from '@/lib/chatState'
+import { PICKUP_ONLY_METHOD, type OrderFlowState } from '@/lib/orderFlow'
 import {
   getMinOrderDate,
   isOrderDateTooSoon,
@@ -28,7 +29,7 @@ type Bubble = {
 }
 
 const WELCOME =
-  "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or delivery — or tell me what you'd like to order."
+  "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or pickup — or tell me what you'd like to order."
 
 const TIME_SLOTS = (() => {
   const slots: string[] = []
@@ -194,19 +195,6 @@ export function ChatBot() {
           setSelectedProducts(new Set())
         }
 
-        // If the flow just started or is at the delivery step, add option buttons
-        if (of?.active && of.step === 'delivery') {
-          setBubbles((b) => [
-            ...b.slice(0, -1),
-            {
-              ...b[b.length - 1],
-              options: [
-                { label: 'Pickup', value: 'pickup' },
-                { label: 'Delivery', value: 'delivery' },
-              ],
-            },
-          ])
-        }
         // Show cancel option during order flow (skip steps with inline inputs gated by isLastBubble)
         if (of?.active && of.step !== 'review' && of.step !== 'phone' && of.step !== 'date') {
           setBubbles((b) => [
@@ -244,8 +232,7 @@ export function ChatBot() {
         items,
         customerName: of.data.customerName,
         phone: of.data.phone,
-        deliveryMethod: of.data.deliveryMethod || undefined,
-        deliveryAddress: of.data.deliveryAddress || undefined,
+        deliveryMethod: PICKUP_ONLY_METHOD,
         pickupDate: of.data.date || undefined,
       })
 
@@ -294,10 +281,7 @@ export function ChatBot() {
   }
 
   const handleOptionClick = (value: string) => {
-    const label =
-      value === 'pickup' ? 'Pickup' :
-      value === 'delivery' ? 'Delivery' :
-      value
+    const label = value === 'pickup' ? 'Pickup' : value
     send(label)
   }
 
