@@ -237,6 +237,106 @@ export function isValidPhone(text: string): boolean {
 }
 
 /* ------------------------------------------------------------------ */
+/* Date helpers (lead-time rules)                                      */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Flans are made fresh when ordered, so customers cannot get them the
+ * same day or the next day. Orders must be scheduled at least
+ * MIN_LEAD_DAYS days in the future.
+ */
+export const MIN_LEAD_DAYS = 2
+
+export const ORDER_MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
+/** Earliest date (midnight) that can be selected for an order. */
+export function getMinOrderDate(): Date {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  d.setDate(d.getDate() + MIN_LEAD_DAYS)
+  return d
+}
+
+/** Resolve a month/day choice (no year in the UI) to a concrete Date. */
+export function resolveOrderDate(month: number, day: number): Date | null {
+  if (!(day >= 1 && day <= 31)) return null
+  const now = new Date()
+  // A month before the current one means the customer means next year.
+  const year = month < now.getMonth() ? now.getFullYear() + 1 : now.getFullYear()
+  return new Date(year, month, day)
+}
+
+/** True when the given date is too soon (today or tomorrow). */
+export function isOrderDateTooSoon(date: Date): boolean {
+  return date.getTime() < getMinOrderDate().getTime()
+}
+
+const WEEKDAY_PATTERNS = [
+  /\bsun(day)?\b/, /\bmon(day)?\b/, /\btue(sday)?\b/, /\bwed(nesday)?\b/,
+  /\bthu(r(sday)?)?\b/, /\bfri(day)?\b/, /\bsat(urday)?\b/,
+]
+
+/**
+ * Best-effort parse of a free-text date into a concrete Date.
+ * Understands "today"/"tonight", "tomorrow", weekday names
+ * ("this saturday"), month-name dates ("August 24") and numeric
+ * dates ("8/24"). Returns null when nothing date-like is found.
+ */
+export function parseOrderDate(text: string): Date | null {
+  const lower = text.toLowerCase().trim()
+
+  if (/\b(today|tonight|tonite)\b/.test(lower)) return new Date(getTodayStart())
+  if (/\b(tomorrow|tmrw|tomorow)\b/.test(lower)) {
+    const d = new Date(getTodayStart())
+    d.setDate(d.getDate() + 1)
+    return d
+  }
+
+  // Month name + day, e.g. "August 24" / "Aug 24th"
+  for (let m = 0; m < ORDER_MONTHS.length; m++) {
+    const re = new RegExp(`\\b${ORDER_MONTHS[m].slice(0, 3)}[a-z]*\\.?\\s+(\\d{1,2})`, 'i')
+    const match = lower.match(re)
+    if (match) {
+      const d = resolveOrderDate(m, Number(match[1]))
+      if (d) return d
+    }
+  }
+
+  // Numeric M/D or M-D, e.g. "8/24"
+  const numeric = lower.match(/\b(\d{1,2})\s*[/-]\s*(\d{1,2})\b/)
+  if (numeric) {
+    const m = Number(numeric[1]) - 1
+    if (m >= 0 && m <= 11) {
+      const d = resolveOrderDate(m, Number(numeric[2]))
+      if (d) return d
+    }
+  }
+
+  // Weekday names, e.g. "this saturday" (next occurrence)
+  for (let i = 0; i < WEEKDAY_PATTERNS.length; i++) {
+    if (WEEKDAY_PATTERNS[i].test(lower)) {
+      const now = new Date()
+      now.setHours(0, 0, 0, 0)
+      const delta = (i - now.getDay() + 7) % 7 || 7
+      const d = new Date(now)
+      d.setDate(d.getDate() + delta)
+      return d
+    }
+  }
+
+  return null
+}
+
+function getTodayStart(): Date {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+/* ------------------------------------------------------------------ */
 /* Step processing                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -362,6 +462,7 @@ function processItemsQuantity(text: string, data: OrderData, currentItemIndex: n
   // All items processed — move to date step
   return {
     reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick your order up at the bakery?\n\nYou can say something like "this Saturday" or "August 20".`,
+    reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick them up or have them delivered?\n\nFlans are made fresh when ordered, so we need at least ${MIN_LEAD_DAYS} days' notice. You can say something like "this Saturday" or "August 20".`,
     nextStep: 'date',
     needsInput: true,
   }
@@ -378,6 +479,57 @@ function processDate(text: string, data: OrderData): StepResult {
     }
   }
   if (trimmed.length < 2) {
+  const parsed = parseOrderDate(trimmed)
+  if (parsed && isOrderDateTooSoon(parsed)) {
+    const min = getMinOrderDate()
+    return {
+      reply: `Our flans are made fresh when you order, so we can't do same-day or next-day. The earliest I can schedule is ${ORDER_MONTHS[min.getMonth()]} ${min.getDate()} — does that work for you?`,
+      nextStep: 'date',
+      needsInput: true,
+    }
+  }
+  const itemSummary = data.items.map((it) => `${it.quantity}× ${it.product.name}`).join(', ')
+  return {
+    reply: `Sounds good — ${trimmed}. For your order (${itemSummary}), would you like pickup or delivery?`,
+    nextStep: 'delivery',
+    options: [
+      { label: 'Pickup', value: 'pickup' },
+      { label: 'Delivery', value: 'delivery' },
+    ],
+    needsInput: true,
+  }
+}
+
+function processDelivery(text: string, data: OrderData): StepResult {
+  const method = parseDeliveryMethod(text)
+  if (!method) {
+    return {
+      reply: 'Would you like to pick up your order or have it delivered?',
+      nextStep: 'delivery',
+      options: [
+        { label: 'Pickup', value: 'pickup' },
+        { label: 'Delivery', value: 'delivery' },
+      ],
+      needsInput: true,
+    }
+  }
+  if (method === 'delivery') {
+    return {
+      reply: 'Great — delivery it is! What\'s the delivery address?',
+      nextStep: 'delivery_info',
+      needsInput: true,
+    }
+  }
+  return {
+    reply: 'Pickup works! Now I just need your name.',
+    nextStep: 'name',
+    needsInput: true,
+  }
+}
+
+function processDeliveryInfo(text: string, data: OrderData): StepResult {
+  const addr = text.trim()
+  if (addr.length < 3) {
     return {
       reply: 'What date works for you? You can say something like "this Saturday" or "August 20".',
       nextStep: 'date',

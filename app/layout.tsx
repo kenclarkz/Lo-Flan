@@ -5,6 +5,7 @@ import { Footer } from '@/components/Footer'
 import { SmoothScroll } from '@/components/SmoothScroll'
 import { AdminButton } from '@/components/AdminButton'
 import { ChatBot } from '@/components/ChatBot'
+import { SocialButtons } from '@/components/SocialButtons'
 
 export const metadata: Metadata = {
   title: {
@@ -63,6 +64,7 @@ export default function RootLayout({
         {children}
         <Footer />
         <ChatBot />
+        <SocialButtons />
         <AdminButton />
       </body>
     </html>

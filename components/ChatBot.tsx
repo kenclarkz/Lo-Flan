@@ -7,6 +7,14 @@ import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
 import { setChatOpen } from '@/lib/chatState'
 import { PICKUP_ONLY_METHOD, type OrderFlowState } from '@/lib/orderFlow'
+import {
+  getMinOrderDate,
+  isOrderDateTooSoon,
+  MIN_LEAD_DAYS,
+  ORDER_MONTHS,
+  resolveOrderDate,
+  type OrderFlowState,
+} from '@/lib/orderFlow'
 import { cn } from '@/lib/utils'
 import { menu, formatPrice } from '@/data/products'
 
@@ -22,11 +30,6 @@ type Bubble = {
 
 const WELCOME =
   "Hi, I'm Lo's Flan assistant! Ask me about our hours, menu, prices or pickup — or tell me what you'd like to order."
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
 
 const TIME_SLOTS = (() => {
   const slots: string[] = []
@@ -55,9 +58,9 @@ function getInitialTimeSlot(): string {
 }
 
 /**
- * Floating chat bot widget. On the home screen the launcher sits directly
- * above the big "Order Now" (Messenger) button; on every other page it docks
- * to the bottom-left corner.
+ * Floating chat bot widget. The launcher docks to the bottom of the viewport
+ * (centered on the home screen, bottom-left everywhere else) and the panel
+ * sits directly above it so there is no dead space underneath.
  */
 export function ChatBot() {
   const pathname = usePathname()
@@ -70,13 +73,16 @@ export function ChatBot() {
   const [busy, setBusy] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set())
-  const [dateMonth, setDateMonth] = useState(() => new Date().getMonth())
-  const [dateDay, setDateDay] = useState(() => new Date().getDate())
+  const [dateMonth, setDateMonth] = useState(() => getMinOrderDate().getMonth())
+  const [dateDay, setDateDay] = useState(() => getMinOrderDate().getDate())
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(getInitialTimeSlot)
   const [phoneValue, setPhoneValue] = useState('')
   const conversationId = useRef<string | undefined>(undefined)
   const orderFlowRef = useRef<OrderFlowState | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const lastBubbleRef = useRef<HTMLDivElement>(null)
+  const pinnedToBottomRef = useRef(true)
+  const expectedScrollRef = useRef<number | null>(null)
 
   useEffect(() => {
     setChatOpen(open)
@@ -92,14 +98,54 @@ export function ChatBot() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isHome])
 
+  // Follow new messages only while the reader is already near the bottom, and
+  // reveal the start of a long reply instead of jumping past it to the very
+  // bottom of the list.
   useEffect(() => {
-    if (!listRef.current) return
-    listRef.current.scrollTop = listRef.current.scrollHeight
-  }, [bubbles, busy, open])
+    const container = listRef.current
+    if (!container) return
+    if (!pinnedToBottomRef.current) return
+
+    const target = lastBubbleRef.current ?? (container.lastElementChild as HTMLElement | null)
+    if (!target) return
+
+    const delta = target.getBoundingClientRect().top - container.getBoundingClientRect().top
+    if (target.offsetHeight > container.clientHeight - 16) {
+      // The new message is taller than the viewport: show its beginning so the
+      // reader isn't dropped at its tail and forced to scroll back up.
+      const next = Math.max(0, container.scrollTop + delta - 12)
+      expectedScrollRef.current = next
+      container.scrollTop = next
+    } else {
+      expectedScrollRef.current = container.scrollHeight
+      container.scrollTop = container.scrollHeight
+    }
+  }, [bubbles, busy])
+
+  // Reopening the panel always lands on the latest message.
+  useEffect(() => {
+    if (!open) return
+    pinnedToBottomRef.current = true
+    expectedScrollRef.current = null
+    const container = listRef.current
+    if (container) container.scrollTop = container.scrollHeight
+  }, [open])
+
+  const handleListScroll = useCallback(() => {
+    const el = listRef.current
+    if (!el) return
+    const expected = expectedScrollRef.current
+    if (expected !== null) {
+      expectedScrollRef.current = null
+      if (Math.abs(el.scrollTop - expected) < 2) return
+    }
+    pinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48
+  }, [])
 
   const send = useCallback(async (textOverride?: string) => {
     const text = (textOverride ?? input).trim()
     if (!text || busy) return
+    pinnedToBottomRef.current = true
     setBubbles((b) => [...b, { role: 'user', text }])
     if (!textOverride) setInput('')
     setBusy(true)
@@ -262,7 +308,7 @@ export function ChatBot() {
   }
 
   const handleDateConfirm = () => {
-    const dateStr = `${MONTHS[dateMonth]} ${dateDay} at ${selectedTimeSlot}`
+    const dateStr = `${ORDER_MONTHS[dateMonth]} ${dateDay} at ${selectedTimeSlot}`
     send(dateStr)
   }
 
@@ -278,6 +324,15 @@ export function ChatBot() {
   const isDateStep = orderFlowRef.current?.active === true && orderFlowRef.current.step === 'date'
   const isPhoneStep = orderFlowRef.current?.active === true && orderFlowRef.current.step === 'phone'
 
+  // Flans are made fresh when ordered — today and tomorrow are blocked.
+  const minOrderDate = getMinOrderDate()
+  const selectedDate = resolveOrderDate(dateMonth, dateDay)
+  const dateBlocked = selectedDate !== null && isOrderDateTooSoon(selectedDate)
+  const dayOptionDisabled = (day: number) => {
+    const optionDate = resolveOrderDate(dateMonth, day)
+    return optionDate !== null && isOrderDateTooSoon(optionDate)
+  }
+
   return (
     <>
       {/* Launcher */}
@@ -285,7 +340,7 @@ export function ChatBot() {
         className={cn(
           'fixed z-40 transition-opacity duration-700',
           isHome
-            ? 'inset-x-0 bottom-[7.5rem] flex justify-center px-6'
+            ? 'inset-x-0 bottom-6 flex justify-center px-6'
             : 'bottom-6 left-6'
         )}
         style={isHome ? { opacity: scrolled || open ? 1 : 0, pointerEvents: scrolled || open ? 'auto' : 'none' } : undefined}
@@ -316,8 +371,8 @@ export function ChatBot() {
               : 'rounded-2xl border border-cream/15 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]',
             !fullscreen && (
               isHome
-                ? 'inset-x-4 bottom-[11.5rem] mx-auto h-[58svh] max-h-[440px] max-w-sm'
-                : 'bottom-24 left-6 h-[min(58svh,460px)] w-[min(calc(100vw-2rem),380px)]'
+                ? 'inset-x-4 bottom-24 mx-auto h-[min(72svh,560px)] max-w-sm'
+                : 'bottom-24 left-6 h-[min(72svh,560px)] w-[min(calc(100vw-2rem),380px)]'
             )
           )}
         >
@@ -347,7 +402,7 @@ export function ChatBot() {
             </button>
           </div>
 
-          <div ref={listRef} data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          <div ref={listRef} onScroll={handleListScroll} data-lenis-prevent className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
             {bubbles.length === 0 && (
               <Bubble role="bot" text={WELCOME} />
             )}
@@ -357,7 +412,7 @@ export function ChatBot() {
               const qtyItemName = b.quantityFor ?? ''
 
               return (
-              <div key={i}>
+              <div key={i} ref={i === bubbles.length - 1 ? lastBubbleRef : undefined}>
                 <Bubble role={b.role} text={b.text} />
                 {b.productSelect && (
                   <div className="mt-2 ml-2 space-y-1.5">
@@ -437,14 +492,16 @@ export function ChatBot() {
                 )}
                 {b.dateSelect && isLastBubble && (
                   <div className="mt-2 ml-2 space-y-2">
-                    <p className="text-[0.65rem] text-cream/50 ml-1">Select date and time:</p>
+                    <p className="text-[0.65rem] text-cream/50 ml-1">
+                      Select date and time (at least {MIN_LEAD_DAYS} days ahead):
+                    </p>
                     <div className="flex gap-2">
                       <select
                         value={dateMonth}
                         onChange={(e) => setDateMonth(Number(e.target.value))}
                         className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
                       >
-                        {MONTHS.map((m, i) => (
+                        {ORDER_MONTHS.map((m, i) => (
                           <option key={m} value={i}>{m}</option>
                         ))}
                       </select>
@@ -454,7 +511,7 @@ export function ChatBot() {
                         className="rounded-lg border border-gold/40 bg-espresso-dark px-2 py-1.5 text-xs font-medium text-gold focus:outline-none focus:border-gold transition-colors"
                       >
                         {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                          <option key={d} value={d}>{d}</option>
+                          <option key={d} value={d} disabled={dayOptionDisabled(d)}>{d}</option>
                         ))}
                       </select>
                     </div>
@@ -467,9 +524,16 @@ export function ChatBot() {
                         <option key={slot} value={slot}>{slot}</option>
                       ))}
                     </select>
+                    {dateBlocked && (
+                      <p className="text-[0.65rem] text-red-300/80 ml-1">
+                        Made fresh to order — same-day and next-day aren&apos;t available.
+                        Earliest is {ORDER_MONTHS[minOrderDate.getMonth()]} {minOrderDate.getDate()}.
+                      </p>
+                    )}
                     <button
                       onClick={handleDateConfirm}
-                      disabled={busy}
+                      disabled={busy || dateBlocked}
+                      title={dateBlocked ? `Earliest available is ${ORDER_MONTHS[minOrderDate.getMonth()]} ${minOrderDate.getDate()}` : undefined}
                       className="rounded-full border border-gold/40 bg-gold/10 px-4 py-1.5 text-xs font-medium text-gold hover:bg-gold/20 transition-colors disabled:opacity-50"
                     >
                       Confirm Date
