@@ -36,7 +36,8 @@
 ### Built-in Chat Assistant + AI Phone Receptionist + Orders
 - **Built-in chat assistant** (`ChatBot` widget) — fully local, runs in the
   browser with no API key, no external AI service, and no server. It answers
-  questions about the menu, prices, hours, delivery, catering, and more using
+  questions about the menu, prices, hours, pickup (no delivery), catering,
+  and more using
   an easy-to-edit knowledge base (`data/chatbot.ts`), and keeps conversation
   context during the session. There's a **"Chat with us"** button right above
   the big Messenger "Order Now" button on the home screen.

@@ -168,7 +168,7 @@ export const businessFacts = {
     site.phone +
     '.',
   pickup: 'Pickup is available at the bakery during business hours.',
-  delivery: 'Local delivery is available in Santa Barbara — ask for details when you order.',
+  delivery: 'Sorry, we don\'t offer delivery — pickup only! You can pick up your order at the bakery during business hours.',
   leadTime: 'Orders are best placed at least a day in advance.',
   catering:
     'We build custom flan towers and dessert tables for weddings, corporate events, and birthdays. Minimum 48 hours notice, serves 12-200+ guests, with delivery and setup available and dietary accommodations offered. Request a quote through our contact page.',
@@ -195,7 +195,7 @@ export const topics: TopicIntent[] = [
     id: 'greeting',
     keywords: ['hello', 'hi', 'hey', 'howdy', 'hola', 'greetings', 'good morning', 'good afternoon', 'good evening', 'yo'],
     answer:
-      "Hello! I'm the Lo's Flan assistant. Ask me about our menu, prices, hours, delivery, or how to order — I'm happy to help.",
+      "Hello! I'm the Lo's Flan assistant. Ask me about our menu, prices, hours, or how to order — I'm happy to help.",
   },
   {
     id: 'hours',
@@ -566,7 +566,7 @@ export const topics: TopicIntent[] = [
       'what questions can i ask',
     ],
     answer:
-      'I can answer questions about our flans (flavors, prices, ingredients, allergens), ordering, pickup and delivery, business hours, contact info, catering, and wholesale. Just ask!',
+      'I can answer questions about our flans (flavors, prices, ingredients, allergens), ordering and pickup, business hours, contact info, catering, and wholesale. Just ask!',
   },
   {
     id: 'thanks',

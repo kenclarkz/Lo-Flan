@@ -2,7 +2,9 @@
  * Conversational order flow for the Lo-Flan chatbot.
  *
  * Guides the customer step-by-step through placing an order:
- *   product (multi-select) → items_quantity (per item) → date → delivery/pickup → contact info → review → submit
+ *   product (multi-select) → items_quantity (per item) → date → contact info → review → submit
+ *
+ * Pickup only — the bakery does not offer delivery.
  *
  * The flow is a pure state machine — no side effects, no server calls.
  * The ChatBot component reads the state and renders the appropriate UI.
@@ -20,8 +22,6 @@ export const ORDER_STEPS = [
   'product',
   'items_quantity',
   'date',
-  'delivery',
-  'delivery_info',
   'name',
   'phone',
   'review',
@@ -41,18 +41,17 @@ export interface OrderItemEntry {
 export interface OrderData {
   items: OrderItemEntry[]
   date: string
-  deliveryMethod: '' | 'pickup' | 'delivery'
-  deliveryAddress: string
   customerName: string
   phone: string
 }
+
+/** The bakery is pickup-only; every order is for pickup at the bakery. */
+export const PICKUP_ONLY_METHOD = 'pickup' as const
 
 export function emptyOrderData(): OrderData {
   return {
     items: [],
     date: '',
-    deliveryMethod: '',
-    deliveryAddress: '',
     customerName: '',
     phone: '',
   }
@@ -215,14 +214,17 @@ export function parseQuantity(text: string): number | null {
 }
 
 /* ------------------------------------------------------------------ */
-/* Delivery method detection                                           */
+/* Delivery intent detection (pickup-only policy)                      */
 /* ------------------------------------------------------------------ */
 
-export function parseDeliveryMethod(text: string): 'pickup' | 'delivery' | null {
-  const lower = text.toLowerCase().trim()
-  if (/pick\s*up|pickup|collect|in[\s-]store/.test(lower)) return 'pickup'
-  if (/deliver|delivery|ship|bring/.test(lower)) return 'delivery'
-  return null
+const DELIVERY_REQUEST_PATTERN = /\b(deliver|delivery|deliveries|ship|shipping|shipped|bring it to|drop ?off)\b/
+
+/**
+ * True when the customer is asking for delivery/shipping, which the bakery
+ * does not offer. Used to politely redirect them to pickup.
+ */
+export function detectsDeliveryRequest(text: string): boolean {
+  return DELIVERY_REQUEST_PATTERN.test(text.toLowerCase())
 }
 
 /* ------------------------------------------------------------------ */
@@ -261,10 +263,6 @@ export function processStep(step: OrderStep, text: string, data: OrderData, curr
       return processItemsQuantity(text, data, currentItemIndex)
     case 'date':
       return processDate(text, data)
-    case 'delivery':
-      return processDelivery(text, data)
-    case 'delivery_info':
-      return processDeliveryInfo(text, data)
     case 'name':
       return processName(text, data)
     case 'phone':
@@ -363,7 +361,7 @@ function processItemsQuantity(text: string, data: OrderData, currentItemIndex: n
 
   // All items processed — move to date step
   return {
-    reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick them up or have them delivered?\n\nYou can say something like "this Saturday" or "August 20".`,
+    reply: `Got it — ${qty}× ${currentItemName}. What date would you like to pick your order up at the bakery?\n\nYou can say something like "this Saturday" or "August 20".`,
     nextStep: 'date',
     needsInput: true,
   }
@@ -371,6 +369,14 @@ function processItemsQuantity(text: string, data: OrderData, currentItemIndex: n
 
 function processDate(text: string, data: OrderData): StepResult {
   const trimmed = text.trim()
+  // The bakery is pickup-only — politely redirect delivery requests.
+  if (detectsDeliveryRequest(trimmed)) {
+    return {
+      reply: 'Sorry, we don\'t offer delivery — pickup only! What date works for you to pick up your order? You can say something like "this Saturday" or "August 20".',
+      nextStep: 'date',
+      needsInput: true,
+    }
+  }
   if (trimmed.length < 2) {
     return {
       reply: 'What date works for you? You can say something like "this Saturday" or "August 20".',
@@ -380,54 +386,7 @@ function processDate(text: string, data: OrderData): StepResult {
   }
   const itemSummary = data.items.map((it) => `${it.quantity}× ${it.product.name}`).join(', ')
   return {
-    reply: `Sounds good — ${trimmed}. For your order (${itemSummary}), would you like pickup or delivery?`,
-    nextStep: 'delivery',
-    options: [
-      { label: 'Pickup', value: 'pickup' },
-      { label: 'Delivery', value: 'delivery' },
-    ],
-    needsInput: true,
-  }
-}
-
-function processDelivery(text: string, data: OrderData): StepResult {
-  const method = parseDeliveryMethod(text)
-  if (!method) {
-    return {
-      reply: 'Would you like to pick up your order or have it delivered?',
-      nextStep: 'delivery',
-      options: [
-        { label: 'Pickup', value: 'pickup' },
-        { label: 'Delivery', value: 'delivery' },
-      ],
-      needsInput: true,
-    }
-  }
-  if (method === 'delivery') {
-    return {
-      reply: 'Great — delivery it is! What\'s the delivery address?',
-      nextStep: 'delivery_info',
-      needsInput: true,
-    }
-  }
-  return {
-    reply: 'Pickup works! Now I just need your name.',
-    nextStep: 'name',
-    needsInput: true,
-  }
-}
-
-function processDeliveryInfo(text: string, data: OrderData): StepResult {
-  const addr = text.trim()
-  if (addr.length < 3) {
-    return {
-      reply: 'Please enter a delivery address (street, city, and zip if possible).',
-      nextStep: 'delivery_info',
-      needsInput: true,
-    }
-  }
-  return {
-    reply: `Got it — I'll note the address as "${addr}". What's your name?`,
+    reply: `Sounds good — ${trimmed}. Your order (${itemSummary}) will be ready for pickup at the bakery. Now I just need your name.`,
     nextStep: 'name',
     needsInput: true,
   }
@@ -472,7 +431,7 @@ function processReview(text: string, data: OrderData): StepResult {
   }
   if (/^(no|change|wrong|fix|edit|modify|update)/i.test(lower)) {
     return {
-      reply: 'No problem! What would you like to change? Say "product", "quantity", "date", "delivery", "name", or "phone" to jump to that step.',
+      reply: 'No problem! What would you like to change? Say "product", "quantity", "date", "name", or "phone" to jump to that step.',
       nextStep: 'review',
       needsInput: true,
     }
@@ -493,7 +452,7 @@ const STEP_JUMP_KEYWORDS: Record<string, OrderStep> = {
   items: 'items_quantity',
   quantity: 'items_quantity',
   date: 'date',
-  delivery: 'delivery',
+  pickup: 'date',
   name: 'name',
   phone: 'phone',
 }
@@ -525,10 +484,7 @@ export function buildReviewSummary(data: OrderData): string {
   }
 
   lines.push(`Date: ${data.date || 'Not specified'}`)
-  lines.push(`Method: ${data.deliveryMethod === 'delivery' ? 'Delivery' : 'Pickup'}`)
-  if (data.deliveryAddress) {
-    lines.push(`Address: ${data.deliveryAddress}`)
-  }
+  lines.push('Method: Pickup at the bakery')
   lines.push(`Name: ${data.customerName}`)
   lines.push(`Phone: ${data.phone}`)
   lines.push('')
