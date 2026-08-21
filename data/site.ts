@@ -4,6 +4,8 @@ export const site = {
   email: 'hola@flandeoro.com',
   phone: '+1 (805) 555-0146',
   messenger: 'https://m.me/losflan',
+  instagram: 'https://instagram.com/losflan',
+  facebook: 'https://facebook.com/losflan',
   address: '218 Calle Dulce, Santa Barbara, CA 93101',
   hours: [
     { day: 'Tuesday — Friday', time: '9:00 am — 6:00 pm' },

@@ -14,6 +14,8 @@ const SESSION_KEY = 'losflan.admin.session'
 const LIBRARY_KEY = 'losflan.admin.library'
 const SCROLL_KEY = 'losflan.admin.scrollVideo'
 const MESSENGER_KEY = 'losflan.admin.messenger'
+const INSTAGRAM_KEY = 'losflan.admin.instagram'
+const FACEBOOK_KEY = 'losflan.admin.facebook'
 
 const DB_NAME = 'losflan-admin'
 const DB_VERSION = 1
@@ -207,6 +209,33 @@ export function setMessengerLink(link: string) {
     const trimmed = link.trim()
     if (trimmed) localStorage.setItem(MESSENGER_KEY, trimmed)
     else localStorage.removeItem(MESSENGER_KEY)
+  } catch {
+    /* storage full — nothing we can do from a helper */
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Social links — Instagram / Facebook (localStorage)                  */
+/* ------------------------------------------------------------------ */
+
+export type SocialPlatform = 'instagram' | 'facebook'
+
+export function getSocialLink(platform: SocialPlatform): string | null {
+  const key = platform === 'instagram' ? INSTAGRAM_KEY : FACEBOOK_KEY
+  if (typeof window === 'undefined') return null
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+export function setSocialLink(platform: SocialPlatform, link: string) {
+  const key = platform === 'instagram' ? INSTAGRAM_KEY : FACEBOOK_KEY
+  try {
+    const trimmed = link.trim()
+    if (trimmed) localStorage.setItem(key, trimmed)
+    else localStorage.removeItem(key)
   } catch {
     /* storage full — nothing we can do from a helper */
   }
