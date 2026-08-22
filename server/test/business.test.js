@@ -24,7 +24,7 @@ test('buildSystemInstruction includes business facts and guardrails', () => {
 test('buildSystemInstruction includes the menu so the phone AI can take orders', () => {
   const prompt = buildSystemInstruction()
   assert.match(prompt, /Classic Original Flan: \$20/)
-  assert.match(prompt, /Chocolate Flan: \$26/)
+  assert.match(prompt, /Flan Choco: \$26/)
   assert.match(prompt, /Oreo Flan: \$28/)
   assert.match(prompt, /collect the flavor, quantity/)
 })

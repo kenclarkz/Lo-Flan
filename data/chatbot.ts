@@ -137,7 +137,7 @@ function productKeywordsFor(id: string): string[] {
     case 'coconut-slice':
       return ['coconut', 'coco', 'tropical', 'slice', 'slices', 'single slice']
     case 'chocoflan':
-      return ['chocolate', 'choco', 'chocoflan', 'chocolate flan', 'cocoa', 'dark']
+      return ['chocolate', 'choco', 'flan choco', 'flan choco mini', 'chocoflan', 'chocolate flan', 'cocoa', 'dark']
     case 'choco-mini':
       return ['chocolate', 'choco', 'mini', 'personal', 'single', 'small', 'little']
     case 'cheese-slice':
@@ -445,7 +445,7 @@ export const topics: TopicIntent[] = [
     answer: `Our whole flans (${products
       .filter((p) => p.size.startsWith('Whole'))
       .map((p) => p.name)
-      .join(', ')}) each serve about 8. We also sell slices of our original and coconut flans, plus a mini personal choco flan. For larger quantities, ask us when you order and the owner will confirm what's available.`,
+      .join(', ')}) each serve about 8. We also sell slices of our original and coconut flans, plus our Flan Choco Mini Personal. For larger quantities, ask us when you order and the owner will confirm what's available.`,
   },
   {
     id: 'catering',
@@ -532,7 +532,7 @@ export const topics: TopicIntent[] = [
       'which flan',
     ],
     answer:
-      'It depends on your taste! Our Vanilla Flan is the silky classic, the Coconut Flan is tropical and creamy, and the Chocoflan is rich and indulgent. They are all handmade in small batches.',
+      'It depends on your taste! Our Vanilla Flan is the silky classic, the Coconut Flan is tropical and creamy, and the Flan Choco is rich and indulgent. They are all handmade in small batches.',
   },
   {
     id: 'human',
@@ -635,7 +635,7 @@ export const faqs: FaqEntry[] = [
     question: 'Can I order slices?',
     keywords: ['slice', 'slices', 'single slice', 'individual'],
     answer:
-      'Yes! We sell single slices of our original and coconut flans, plus a mini personal choco flan. Check our menu page for the full selection.',
+      'Yes! We sell single slices of our original and coconut flans, plus our Flan Choco Mini Personal. Check our menu page for the full selection.',
   },
 ]
 

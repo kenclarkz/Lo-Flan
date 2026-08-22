@@ -36,7 +36,7 @@ export const menu: MenuProduct[] = [
   },
   {
     id: 'chocoflan',
-    name: 'Chocoflan',
+    name: 'Flan Choco',
     tagline: 'Rich · Dark · Indulgent',
     description:
       'Chocolate custard layered over caramel in one unforgettable dessert.',

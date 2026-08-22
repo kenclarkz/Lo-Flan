@@ -128,7 +128,7 @@ test('POST /api/orders accepts a valid chat order payload', async () => {
     body: JSON.stringify({
       items: [
         { name: 'Vanilla Flan', quantity: 2 },
-        { name: 'Chocoflan', quantity: 1 },
+        { name: 'Flan Choco', quantity: 1 },
       ],
       customerName: 'Jane Doe',
       phone: '555-0199',
@@ -143,7 +143,7 @@ test('POST /api/orders accepts a valid chat order payload', async () => {
   assert.equal(body.order.items.length, 2)
   assert.equal(body.order.items[0].name, 'Vanilla Flan')
   assert.equal(body.order.items[0].quantity, 2)
-  assert.equal(body.order.items[1].name, 'Chocoflan')
+  assert.equal(body.order.items[1].name, 'Flan Choco')
   assert.equal(body.order.items[1].quantity, 1)
   assert.equal(body.order.source, 'chat')
   assert.equal(body.order.status, 'pending')

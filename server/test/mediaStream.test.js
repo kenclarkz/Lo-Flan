@@ -6,7 +6,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocket, WebSocketServer } from 'ws'
-import { handleMediaStream, looksLikeOrder } from '../src/ws/mediaStream.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -15,6 +14,7 @@ process.env.DATABASE_URL = 'postgresql://loflan:loflan_dev@localhost:5432/loflan
 const schema = fs.readFileSync(path.join(__dirname, '../src/db/schema.sql'), 'utf8')
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
 
+const { handleMediaStream, looksLikeOrder } = await import('../src/ws/mediaStream.js')
 const { _resetStore, listOrders } = await import('../src/store/orders.js')
 
 const SILENCE_PAYLOAD = Buffer.alloc(160, 0xff).toString('base64')
@@ -207,7 +207,11 @@ test('bridge records a phone call with transcript and flags orders', async () =>
     ws.send(
       JSON.stringify({
         event: 'start',
-        start: { streamSid: 'sid6', callSid: 'call6', from: '+18055550146' },
+        start: {
+          streamSid: 'sid6',
+          callSid: 'call6',
+          customParameters: { from: '+18055550146' },
+        },
       }),
     )
     const session = await nextSession()

@@ -30,7 +30,7 @@ export const business = {
       description: 'Silky caramel flan made from fresh milk, eggs and vanilla.',
     },
     {
-      name: 'Chocolate Flan',
+      name: 'Flan Choco',
       price: 26,
       slices: 8,
       description: 'Rich dark chocolate folded into the classic custard.',

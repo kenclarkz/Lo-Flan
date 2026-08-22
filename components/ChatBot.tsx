@@ -6,8 +6,8 @@ import { Check, Loader2, Maximize2, Minimize2, MessageCircle, Send, X } from 'lu
 import { getLocalChatReply } from '@/lib/chatbot'
 import { submitChatOrder, getServerUrl, OrderSubmissionError } from '@/lib/chat'
 import { setChatOpen } from '@/lib/chatState'
-import { PICKUP_ONLY_METHOD, type OrderFlowState } from '@/lib/orderFlow'
 import {
+  PICKUP_ONLY_METHOD,
   getMinOrderDate,
   isOrderDateTooSoon,
   MIN_LEAD_DAYS,
